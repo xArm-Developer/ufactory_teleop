@@ -3,6 +3,7 @@
 This project provides teleoperation solutions for UFACTORY robotic arms, featuring two independent approaches:
 
 1. **Pika Sense-based Teleoperation**: Utilizing Agilex Robotics' Pika Sense technology for precise motion tracking and control
+[![Watch the video](assets/pika_teleoperation_system.jpg)](https://www.youtube.com/watch?v=D4L1dyyBriA)
 2. **GELLO-inspired Framework**: Based on concepts from the open-source GELLO framework (https://wuphilipp.github.io/gello_site/)
 
 ## Overview
