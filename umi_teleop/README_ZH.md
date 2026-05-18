@@ -49,7 +49,7 @@ pip install pysurvive
 
 设置USB权限 (需要设置USB的读写权限，下面指令可以自动设置，运行完指令后请插拔一次USB)
 ```bash
-sudo cp 99-xvisio.rules /etc/udev/rules.d/
+sudo cp rules/*.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
