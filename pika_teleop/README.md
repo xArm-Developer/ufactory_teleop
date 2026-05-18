@@ -77,7 +77,7 @@ python uf_robot_pika_teleop.py <robot_ip> [robot_mode] [gripper_type]
 #### 1. Set Permissions For USB
 You need to set the read and write permissions for the USB. The following command can automatically configure this. Please replug the USB after running the command.
 ```bash
-sudo cp 81-vive.rules /etc/udev/rules.d/
+sudo cp rules/*.rule /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 

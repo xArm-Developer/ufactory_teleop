@@ -79,7 +79,7 @@ python uf_robot_pika_teleop.py <robot_ip> [robot_mode] [gripper_type]
 
 需要设置USB的读写权限，下面指令可以自动设置，运行完指令后请插拔一次USB。
 ```bash
-sudo cp 81-vive.rules /etc/udev/rules.d/
+sudo cp rules/*.rule /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
@@ -87,7 +87,7 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 
 首次使用Pika Sense 或者**基站位置变动**需要校准。
 
-* 方法一：使用srvive-cliu.py 进行校准 [推荐]   
+* 方法一：使用srvive-cli.py 进行校准 [推荐]   
 
 
 1. 先运行官方示例：
