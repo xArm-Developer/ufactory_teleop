@@ -1,0 +1,2 @@
+xarm-python-sdk
+git+https://github.com/agilexrobotics/pika_sdk.git@master

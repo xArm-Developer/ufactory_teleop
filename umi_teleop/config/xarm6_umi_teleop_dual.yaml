@@ -1,0 +1,29 @@
+
+L:
+  RobotConfig:
+    robot_ip: "192.168.1.29"
+    gripper_type: 2
+    start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
+    start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+
+  TeleoperatorConfig:
+    serial_number: "250801DR48FP26001318"
+    use_vive_tracker: True
+    vive_tracker_id: "LHR-555DC7BF"
+    use_gripper: True
+    tracker_to_robot_eef: [0, 0, 0, 0, 0, -1.570796]
+    robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+R:
+  RobotConfig:
+    robot_ip: "192.168.1.195"
+    gripper_type: 2
+    start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
+    start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+
+  TeleoperatorConfig:
+    serial_number: "250801DR48FP26001295"
+    use_vive_tracker: True
+    vive_tracker_id: "LHR-2425BAD3"
+    use_gripper: True
+    tracker_to_robot_eef: [0, 0, 0, 0, 0, 1.570796]
+    robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
