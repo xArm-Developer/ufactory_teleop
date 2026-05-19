@@ -1,5 +1,9 @@
 # UMI Teleoperation Guide
 
+Use LuMos FastUMI (https://www.fastumi.com/) for teleoperation control of UFACTORY's robotic arms (https://www.ufactory.cc/xarm-collaborative-robot/).
+
+GitHub: https://github.com/xArm-Developer/ufactory_teleop  
+
 This guide is based on `umi_teleop/uf_robot_umi_teleop.py` and `umi_teleop/uf_robot_umi_teleop_dual.py`. It explains how to use UMI devices to teleoperate one or two UFACTORY xArm robots.
 
 ## 1. Overview
