@@ -1,7 +1,8 @@
 # Pika 遥操作系统
 
 
-使用松灵机器人的Pika Sense (https://global.agilex.ai/products/pika) 进对 UFACTORY(深圳市众为创造科技有限公司) 的机械臂(https://www.ufactory.cc/xarm-collaborative-robot/)的遥操作控制。  
+使用松灵机器人的Pika Sense (https://global.agilex.ai/products/pika)   
+对 UFACTORY(深圳市众为创造科技有限公司) 的机械臂(https://www.ufactory.cc/xarm-collaborative-robot/) 进行遥操作控制。  
 
 GitHub: https://github.com/xArm-Developer/ufactory_teleop
 
