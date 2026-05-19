@@ -1,42 +1,121 @@
 # UFACTORY Teleoperation System
 
-This project provides teleoperation solutions for UFACTORY robotic arms, featuring two independent approaches:
+This project provides teleoperation solutions for UFACTORY robotic arms, featuring three independent approaches:
 
-1. **Pika Sense-based Teleoperation**: Utilizing Agilex Robotics' Pika Sense technology for precise motion tracking and control
+1. **Pika Sense-based Teleoperation**: Utilizing Agilex Robotics' Pika Sense technology for precise motion tracking and control.
 [![Watch the video](assets/pika_teleoperation_system.jpg)](https://www.youtube.com/watch?v=D4L1dyyBriA)
-2. **GELLO-inspired Framework**: Based on concepts from the open-source GELLO framework (https://wuphilipp.github.io/gello_site/)
+2. **UMI Teleoperation**: Using FAST UMI devices for motion capture and control.
+3. **GELLO-inspired Framework**: Based on concepts from the open-source GELLO framework (https://wuphilipp.github.io/gello_site/)
+![alt text](assets/gello.png)
 
 ## Overview
 
 The UFACTORY Teleoperation System enables intuitive remote control of UFACTORY robotic arms through advanced motion tracking technologies. These systems are designed to lower the barrier to collecting high-quality demonstration data for robotic learning and manipulation tasks.
 
+## Project Structure
+
+```
+ufactory_teleop/
+├── ufactory_devices/         # Shared core library
+│   ├── transformations.py    # Pose math (quaternion, RPY, axis-angle, homogeneous matrices)
+│   ├── robot/                # xArm robot wrapper (connection, motion, gripper control)
+│   ├── pika/                 # Pika Sense & Pika Gripper serial driver
+│   ├── umi/                  # UMI device SDK bindings (XVLib via ctypes)
+│   └── vive_tracker/         # HTC Vive Tracker driver (pysurvive)
+├── pika_teleop/              # Pika Sense teleoperation solution
+│   ├── uf_robot_pika_teleop.py
+│   ├── calibrate.py
+│   ├── config/
+│   └── rules/
+└── umi_teleop/               # UMI teleoperation solution
+    ├── uf_robot_umi_teleop.py
+    ├── uf_robot_umi_teleop_dual.py
+    ├── calibrate.py
+    ├── config/
+    ├── rules/
+    └── xvsdk/
+```
+
 ## Teleoperation Solutions
 
 ### Pika Sense-based Solution
-- Utilizes Agilex Robotics' Pika Sense for precise motion tracking and control
-- Enables real-time teleoperation with minimal latency
-- Supports positional and rotational tracking
-- Ideal for applications requiring high-fidelity motion capture
 
-### GELLO-inspired Solution
-- Incorporates concepts from GELLO, a low-cost, intuitive teleoperation framework for robot manipulators
-- Designed to be user-friendly and affordable, using off-the-shelf components
-- Provides kinematically equivalent control for more intuitive operation
-- Suitable for educational purposes and rapid prototyping
+Uses Agilex Robotics' Pika Sense — a handheld clamp controller with integrated Vive Tracker mount — to capture 6-DOF hand motion and map it to robot end-effector movement in real time.
+
+- **Tracking**: HTC Vive Tracker + Lighthouse base stations (via Pika SDK)
+- **Control**: Single-arm teleoperation with command-state toggle (clamp open/close to start/stop)
+- **Gripper Support**: Pika Gripper, xArm Gripper (G1/G2), BIO Gripper G2, Robotiq Gripper
+- **Motion Modes**: Servo Cartesian (mode 1) and online trajectory planning (mode 7)
+
+For details, see [pika_teleop/README.md](pika_teleop/README.md).
+
+### UMI Teleoperation Solution
+
+A GELLO-inspired framework using FAST UMI devices for low-cost, intuitive teleoperation. Supports both single-arm and dual-arm setups with flexible tracking options.
+
+- **Tracking**: UMI built-in SLAM or HTC Vive Tracker + Lighthouse base stations (configurable)
+- **Control**: Single-arm (`uf_robot_umi_teleop.py`) and dual-arm (`uf_robot_umi_teleop_dual.py`) teleoperation
+- **Gripper Support**: xArm Gripper G2, xArm Gripper, BIO Gripper G2, Pika Gripper, Robotiq Gripper
+- **Motion Modes**: Servo Cartesian (mode 1) and online trajectory planning (mode 7)
+- **Dual-Arm**: Two UMI devices control two xArm robots simultaneously via independent threads
+
+For details, see [umi_teleop/README.md](umi_teleop/README.md).
+
+### Gello Teleoperation Solution
+For details, see [lerobot_ufactory_usage](https://github.com/xArm-Developer/lerobot/tree/main/src/lerobot/ufactory_usage).
 
 ## Features
 
 - **Intuitive Control**: Direct manipulation interfaces that reduce the gap between user and robot embodiment
-- **Cost-Effective Solutions**: Leverages commercially available tracking technologies
+- **Cost-Effective**: Leverages commercially available tracking technologies and off-the-shelf components
 - **High-Quality Demonstrations**: Enables collection of precise demonstration data for imitation learning
 - **Multi-Robot Support**: Compatible with various UFACTORY robotic arm models (xArm 5/6/7, Lite 6, 850)
+- **Flexible Gripper Options**: Supports xArm Gripper (G1/G2), BIO Gripper G2, Pika Gripper, and Robotiq Gripper
+- **Dual-Arm Operation**: UMI solution supports synchronized dual-arm teleoperation for bimanual tasks
 
 ## Getting Started
 
-For detailed installation instructions, system requirements, and usage guidelines for the Pika Sense-based solution, please refer to the comprehensive documentation in the [pika_teleop/readme.md](pika_teleop/readme.md) file.
+### Pika Sense-based Teleoperation
+
+Please refer to the detailed documentation in [pika_teleop/README.md](pika_teleop/README.md).
+
+Quick start:
+
+```bash
+git clone https://github.com/xArm-Developer/ufactory_teleop
+cd ufactory_teleop/pika_teleop
+python3.9 -m venv py39 && source py39/bin/activate
+pip install -r requirements.txt && pip install pysurvive
+sudo cp rules/*.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules && sudo udevadm trigger
+python uf_robot_pika_teleop.py --config config/xarm6_pika_teleop.yaml
+```
+
+### UMI Teleoperation
+
+Please refer to the detailed documentation in [umi_teleop/README.md](umi_teleop/README.md).
+
+Quick start (single arm):
+
+```bash
+cd ufactory_teleop/umi_teleop
+python3.9 -m venv py39 && source py39/bin/activate
+sudo dpkg -i xvsdk/XVSDK_focal_amd64.deb && sudo apt install -y --fix-broken
+pip install -r requirements.txt && pip install pysurvive
+sudo cp rules/*.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules && sudo udevadm trigger
+python uf_robot_umi_teleop.py --config config/xarm6_umi_teleop.yaml
+```
+
+Quick start (dual arm):
+
+```bash
+python uf_robot_umi_teleop_dual.py --config config/xarm6_umi_teleop_dual.yaml
+```
 
 ## References
 
 - [Agilex Robotics Pika Sense](https://global.agilex.ai/products/pika)
 - [UFACTORY Robotic Arms](https://www.ufactory.cc/xarm-collaborative-robot/)
+- [FastUMI](https://www.fastumi.com/)
 - [GELLO: General Low-Cost Teleoperation Framework](https://wuphilipp.github.io/gello_site/)
