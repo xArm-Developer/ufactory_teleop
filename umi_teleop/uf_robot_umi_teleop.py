@@ -46,7 +46,6 @@ class UFRobotTeleop(object):
         else:
             self.tracker = None
         self.xvlib = XVLib(self.config.serial_number, init_slam, init_clamp_stream)
-        self.xvlib.xv_init(self.config.serial_number, init_slam, init_clamp_stream, False, False)
 
         tracker_to_robot_eef = self.config.tracker_to_robot_eef
         self.tracker_to_robot_matrix = Transformations.xyzrpy_to_rotation_matrix(*tracker_to_robot_eef)
@@ -60,6 +59,7 @@ class UFRobotTeleop(object):
 
     def run(self):
         sleep_time = 1 / self.config.fps
+        gripper_norm = 0
 
         while self.status > 0:
             time.sleep(sleep_time)
@@ -67,14 +67,16 @@ class UFRobotTeleop(object):
             if self.status != 1:
                 continue
 
-
+            code = 0
             if self.tracker is not None:
                 pose_data = self.tracker.get_pose(self.config.vive_tracker_id)
                 if pose_data is None:
                     print('cant not get pose from vive tracker')
-                    _, pose_data = self.xvlib.xv_get_slam_data()
+                    continue
             else:
-                _, pose_data = self.xvlib.xv_get_slam_data()
+                code, pose_data = self.xvlib.xv_get_slam_data()
+            if code != 0:
+                continue
             position = pose_data.position.to_list(6)
             quaternion = pose_data.quaternion.to_list(6)
             x, y, z = position[0] * 1000, position[1] * 1000, position[2] * 1000
@@ -89,10 +91,13 @@ class UFRobotTeleop(object):
             action = [x, y, z, orientation[0], orientation[1], orientation[2]]
 
             if self.config.use_gripper:
-                _, clamp_data = self.xvlib.xv_get_clamp_stream_data()
-                gripper_norm = (87 - clamp_data.data) / (87 - 0)
+                code, clamp_data = self.xvlib.xv_get_clamp_stream_data()
+                if code == 0:
+                    gripper_norm = (87 - clamp_data.data) / (87 - 0)
                 action.append(gripper_norm)
-            self.robot.send_action(action)
+            code = self.robot.send_action(action)
+            if code != 0:
+                break
             
 
 
@@ -106,6 +111,7 @@ if __name__ == '__main__':
             config = yaml.safe_load(f)
     except Exception as e:
         print(f"Error loading config yaml file: {e}")
+        exit(1)
     
     robot_confg = UFRobotConfig(**config['RobotConfig'])
     teleop_confg = UmiTeleopConfig(**config['TeleoperatorConfig'])

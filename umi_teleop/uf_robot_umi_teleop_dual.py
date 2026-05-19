@@ -12,6 +12,7 @@ if __name__ == '__main__':
             config = yaml.safe_load(f)
     except Exception as e:
         print(f"Error loading config yaml file: {e}")
+        exit(1)
 
     left_config = config["L"]
     right_config = config["R"]
@@ -42,4 +43,8 @@ if __name__ == '__main__':
     teleop2.set_status(1)
 
     while True:
+        if not t1.is_alive() or not t2.is_alive():
+            teleop1.set_status(0)
+            teleop2.set_status(0)
+            break
         time.sleep(1)

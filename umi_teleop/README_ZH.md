@@ -1,110 +1,209 @@
-# UMI 遥操作系统
+# UMI 遥操作使用文档
 
+本文档根据 `umi_teleop/uf_robot_umi_teleop.py` 和 `umi_teleop/uf_robot_umi_teleop_dual.py` 编写，说明如何使用 UMI 设备遥操作一台或两台 UFACTORY xArm 机械臂。
 
+## 1. 简介
 
-## 系统要求
+UMI 遥操作脚本读取 UMI SLAM 位姿或 Vive Tracker 位姿，将手部相对运动转换为机械臂末端目标位姿，并通过 `UFRobot` 发送给机械臂。
 
-### 操作系统
-- **支持**: Ubuntu 22.04/Ubuntu 24.04
-- **不支持**: Windows/Mac OS
+入口脚本：
 
-### Python 版本
-- Python 3.8/3.9/3.10
+- `umi_teleop/uf_robot_umi_teleop.py`：单个 UMI 设备控制单台机械臂。
+- `umi_teleop/uf_robot_umi_teleop_dual.py`：两个 UMI 设备控制两台机械臂，内部使用两个后台线程运行。
 
-### 硬件要求
-- UFACTORY xArm 机械臂(xArm 5/6/7, Lite 6或850)
-- FAST UMI PRO
+支持的位姿来源：
 
-## 安装
+- `use_vive_tracker: True`：使用 Vive Tracker 位姿。
+- `use_vive_tracker: False`：直接使用 UMI SLAM 位姿。
 
-### 1. 下载项目
+## 2. 环境与硬件要求
+
+推荐环境：
+
+- Ubuntu 22.04 或 Ubuntu 24.04。
+- Python 3.8、3.9 或 3.10。
+- UFACTORY xArm 机械臂。
+- FAST UMI / UMI 设备。
+- 可选：Vive Tracker 和 Lighthouse 基站。
+- 可选：受支持的机械臂夹爪。
+
+## 3. 安装
+
+克隆项目并进入 UMI 遥操作目录：
 
 ```bash
 git clone https://github.com/xArm-Developer/ufactory_teleop
 cd ufactory_teleop/umi_teleop
 ```
 
-### 2. 创建虚拟环境与安装依赖
+创建并激活虚拟环境：
 
-创建虚拟环境(推荐)
 ```bash
 python3.9 -m venv py39
-```
-激活虚拟环境
-```bash
 source py39/bin/activate
 ```
 
-安装XVSDK
+安装 XVSDK：
+
 ```bash
-dpkg -i xvsdk/XVSDK_focal_amd64.deb
-apt install -y --fix-broken
+sudo dpkg -i xvsdk/XVSDK_focal_amd64.deb
+sudo apt install -y --fix-broken
 ```
 
-安装依赖
+安装 Python 依赖：
+
 ```bash
 pip install -r requirements.txt
 pip install pysurvive
 ```
 
-设置USB权限 (需要设置USB的读写权限，下面指令可以自动设置，运行完指令后请插拔一次USB)
+配置 USB 规则：
+
 ```bash
 sudo cp rules/*.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules && sudo udevadm trigger
+sudo udevadm control --reload-rules
+sudo udevadm trigger
 ```
 
-系统启动参数配置（注: 多个umi设备同时使用才需要）
+执行后建议重新插拔 UMI 和 Vive 设备。
+
+如果需要同时使用多个 UMI 设备，可增大 USB buffer：
+
 ```bash
-sed -i '/GRUB_CMDLINE_LINUX_DEFAULT/s/quiet splash/quiet splash usbcore.usbfs_memory_mb=128/' /etc/default/grub
+sudo sed -i '/GRUB_CMDLINE_LINUX_DEFAULT/s/quiet splash/quiet splash usbcore.usbfs_memory_mb=128/' /etc/default/grub
 sync
-update-grub
-reboot
+sudo update-grub
+sudo reboot
 ```
 
-跟踪设备校准 (首次使用UMI设备 或者**基站位置变动**需要校准)
+## 4. 配置文件
+
+示例文件：
+
+- 单臂：`umi_teleop/config/xarm6_umi_teleop.yaml`
+- 双臂：`umi_teleop/config/xarm6_umi_teleop_dual.yaml`
+
+### 单臂配置
+
+```yaml
+RobotConfig:
+  robot_ip: "192.168.1.29"
+  gripper_type: 2
+  start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
+  start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+
+TeleoperatorConfig:
+  serial_number: "250801DR48FP26001318"
+  use_vive_tracker: True
+  vive_tracker_id: "LHR-555DC7BF"
+  use_gripper: True
+  tracker_to_robot_eef: [0, 0, 0, 0, 0, -1.570796]
+  robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+```
+
+### 双臂配置
+
+双臂脚本要求最外层包含 `L` 和 `R`，每组内部都有自己的 `RobotConfig` 和 `TeleoperatorConfig`。
+
+```yaml
+L:
+  RobotConfig:
+    robot_ip: "192.168.1.29"
+    gripper_type: 2
+    start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
+    start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+  TeleoperatorConfig:
+    serial_number: "250801DR48FP26001318"
+    use_vive_tracker: True
+    vive_tracker_id: "LHR-555DC7BF"
+    use_gripper: True
+    tracker_to_robot_eef: [0, 0, 0, 0, 0, -1.570796]
+    robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+
+R:
+  RobotConfig:
+    robot_ip: "192.168.1.195"
+    gripper_type: 2
+    start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
+    start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+  TeleoperatorConfig:
+    serial_number: "250801DR48FP26001295"
+    use_vive_tracker: True
+    vive_tracker_id: "LHR-2425BAD3"
+    use_gripper: True
+    tracker_to_robot_eef: [0, 0, 0, 0, 0, 1.570796]
+    robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+```
+
+## 5. 参数说明
+
+### RobotConfig
+
+| 参数 | 说明 |
+| --- | --- |
+| `robot_ip` | 机械臂控制器 IP 地址。 |
+| `robot_mode` | 运动模式。`1` 为 servo 笛卡尔伺服模式，`7` 为笛卡尔在线轨迹规划模式，默认 `7`。 |
+| `robot_speed` | 机械臂运动速度，默认 `250`。 |
+| `robot_acc` | 机械臂运动加速度，默认 `1000`。 |
+| `gripper_type` | `0` 无夹爪，`1` xArm Gripper，`2` xArm Gripper G2，`10` Pika Gripper，`11` Robotiq Gripper。 |
+| `gripper_port` | Pika Gripper 串口，仅 `gripper_type: 10` 时使用，不指定则自动检测。 |
+| `gripper_speed` | 夹爪速度，`-1` 表示使用默认值。 |
+| `gripper_force` | 夹爪力控参数，`-1` 表示使用默认值。 |
+| `start_joints` | 启动时机械臂先移动到的关节角，单位 rad。 |
+| `start_tcp_pose` | 可选启动 TCP 位姿，格式为 `[x, y, z, roll, pitch, yaw]`，位置单位 mm，姿态单位 rad。 |
+
+### TeleoperatorConfig
+
+| 参数 | 说明 |
+| --- | --- |
+| `serial_number` | UMI 设备序列号，必填。 |
+| `fps` | 控制循环频率，默认 `30`。 |
+| `use_gripper` | 是否读取 UMI clamp stream 并追加夹爪控制量。 |
+| `use_vive_tracker` | 是否使用 Vive Tracker 位姿。为 `False` 时使用 UMI SLAM 位姿。 |
+| `vive_tracker_id` | Vive Tracker ID，例如 `LHR-555DC7BF`，双臂时请一定要使用序列号而不是"WM0"这种设备名。 |
+| `tracker_to_robot_eef` | Tracker/UMI 坐标系到机器人末端坐标系的变换。 |
+| `robot_base_pose` | 遥操作基准机械臂末端位姿。 |
+
+## 6. Vive Tracker 标定
+
+首次使用或 Lighthouse 基站位置变化后，运行：
+
 ```bash
-# 校准过程不要移动基站和tracker设备
-# 校准会先删除原有的配置文件
-# 然后校准
-# 校准完会持续输出tracker的位置(请确定有对应的tracker位置输出)
+cd ufactory_teleop/umi_teleop
 python calibrate.py
 ```
 
-## 使用说明
+脚本会删除 `~/.config/libsurvive/config.json`，强制重新标定，并持续输出检测到的 tracker 位姿。标定过程中不要移动基站和 tracker。
 
-### 基本用法
+## 7. 运行方法
+
+单臂：
 
 ```bash
-# 单个umi设备控制单个机械臂（***运行前请先修改配置文件***）
+cd ufactory_teleop/umi_teleop
 python uf_robot_umi_teleop.py --config config/xarm6_umi_teleop.yaml
+```
 
-# 两个umi设备控制两个机械臂（***运行前请先修改配置文件***）
+双臂：
+
+```bash
+cd ufactory_teleop/umi_teleop
 python uf_robot_umi_teleop_dual.py --config config/xarm6_umi_teleop_dual.yaml
 ```
 
-### 参数说明()
+启动流程：
 
-#### RobotConfig
-- `robot_ip`: 机械臂的 IP 地址，例如 192.168.1.200
-- `robot_mode`: 
-    - `1`: Servo 伺服运动模式
-    - `7`: 笛卡尔在线轨迹规划模式 (推荐)
-- `robot_speed`: 机械臂运动速度 (默认250)
-- `robot_acc`: 机械臂运动加速度 (默认1000)
-- `gripper_type`:
-    - `0`: 无夹爪
-    - `1`: xArm Gripper
-    - `2`: xArm Gripper G2
-    - `3`: BIO Gripper G2
-    - `10`: Pika Gripper
-    - `11`: RobotIQ Gripper
-- `start_joints`: 启动时机械臂会使用关节指令运动到此位置
-- `start_tcp_pose`: 启动时机械臂在运动到start_joints后会使用笛卡尔指令运动到此位置 (不指定则不执行)
+1. 读取 YAML 配置。
+2. 连接并初始化一台或两台机械臂。
+3. 每台机械臂移动到 `start_joints`，再可选移动到 `start_tcp_pose`。
+4. 初始化 UMI 和可选 Vive Tracker。
+5. 显示 `Enter to control robot with teleop >>>`。
+6. 按 Enter 后开始遥操作。
 
-#### TeleoperatorConfig
-- `serial_number`: UMI设备的序列号
-- `use_gripper`: 是否控制机械爪
-- `use_vive_tracker`: 是否使用vive tracker, 否则使用光流
-- `vive_tracker_id`: vive tracker的ID (默认'WM0'), 如果有多个设备, 请使用设备ID (LHR-******)
-- `tracker_to_robot_eef`: 从tracker到机械臂末端法兰中心的转换关系
-- `robot_base_pose`: 对应的机械臂位置([x(mm), y(mm), z(mm), roll(rad), pitch(rad), yaw(rad)])
+## 8. 安全注意事项
+
+- 机械臂在遥操作开始前的初始化阶段就会运动。
+- 先低速验证 `start_joints`、`start_tcp_pose` 和 `robot_base_pose` 是否安全。
+- 保持工作空间无障碍物，并安排人员看守急停。
+- 双臂运行前逐项确认左右机械臂的 `robot_ip`、`serial_number`、`vive_tracker_id` 和 `tracker_to_robot_eef` 没有填反。
+
