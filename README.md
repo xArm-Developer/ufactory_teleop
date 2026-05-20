@@ -98,8 +98,10 @@ Quick start:
 ```bash
 git clone https://github.com/xArm-Developer/ufactory_teleop
 cd ufactory_teleop/pika_teleop
-python3.9 -m venv py39 && source py39/bin/activate
-pip install -r requirements.txt && pip install pysurvive
+conda create --name py39 python=3.9
+conda activate py39
+pip install -r requirements.txt
+pip install pysurvive agx-pypika --no-deps
 sudo cp rules/*.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
 python uf_robot_pika_teleop.py --config config/xarm6_pika_teleop.yaml
@@ -113,9 +115,12 @@ Quick start (single arm):
 
 ```bash
 cd ufactory_teleop/umi_teleop
-python3.9 -m venv py39 && source py39/bin/activate
-sudo dpkg -i xvsdk/XVSDK_focal_amd64.deb && sudo apt install -y --fix-broken
-pip install -r requirements.txt && pip install pysurvive
+conda create --name py39 python=3.9
+conda activate py39
+sudo dpkg -i xvsdk/XVSDK_focal_amd64.deb
+sudo apt install -y --fix-broken
+pip install -r requirements.txt
+pip install pysurvive agx-pypika --no-deps
 sudo cp rules/*.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
 python uf_robot_umi_teleop.py --config config/xarm6_umi_teleop.yaml
@@ -135,10 +140,14 @@ Quick start:
 
 ```bash
 cd ufactory_teleop/gello_teleop
-python3.9 -m venv py39 && source py39/bin/activate
+conda create --name py39 python=3.9
+conda activate py39
 pip install -r requirements.txt
-cd src/gello
-pip install -e third_party/DynamixelSDK/python && pip install -e .
+pip install pysurvive agx-pypika --no-deps
+git clone https://github.com/wuphilipp/gello_software.git /tmp/gello_software
+cd /tmp/gello_software
+pip install -e .
+cd -
 sudo usermod -aG dialout $USER
 # Re-login then run
 python uf_robot_gello_teleop.py --config config/xarm7_gello_teleop.yaml
