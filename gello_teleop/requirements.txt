@@ -1,2 +1,4 @@
--e git+https://github.com/wuphilipp/gello_software.git@06865d962b11e2b1d2144cc2d2c5418b9678c465#egg=gello
+numpy
+pyyaml
 git+https://github.com/xArm-Developer/xArm-Python-SDK.git
+git+https://github.com/ROBOTIS-GIT/DynamixelSDK.git#subdirectory=python

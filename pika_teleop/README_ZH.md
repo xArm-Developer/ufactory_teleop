@@ -53,15 +53,21 @@ cd ufactory_teleop/pika_teleop
 创建并激活虚拟环境：
 
 ```bash
-python3.9 -m venv py39
-source py39/bin/activate
+conda create --name py39 python=3.9
+conda activate py39
 ```
 
-安装依赖：
+安装 Python 依赖：
 
 ```bash
 pip install -r requirements.txt
-pip install pysurvive
+pip install pysurvive agx-pypika --no-deps
+```
+
+安装后需要保证以下导入可以成功：
+
+```bash
+python -c "import pysurvive;from pika.sense import Sense;from pika.gripper import Gripper;from xarm.wrapper import XArmAPI"
 ```
 
 配置 USB、串口和 Vive 设备规则：

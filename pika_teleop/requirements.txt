@@ -1,2 +1,4 @@
-xarm-python-sdk
-git+https://github.com/agilexrobotics/pika_sdk.git@master
+numpy
+pyyaml
+pyserial
+git+https://github.com/xArm-Developer/xArm-Python-SDK.git@master

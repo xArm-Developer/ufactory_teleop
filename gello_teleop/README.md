@@ -55,24 +55,25 @@ cd ufactory_teleop/gello_teleop
 Create and activate a virtual environment:
 
 ```bash
-python3.9 -m venv py39
-source py39/bin/activate
+conda create --name py39 python=3.9
+conda activate py39
 ```
 
-Install basic dependencies:
+Install Python dependencies:
 
 ```bash
 pip install -r requirements.txt
-cd src/gello
-pip install -e third_party/DynamixelSDK/python
+pip install pysurvive agx-pypika --no-deps
+git clone https://github.com/wuphilipp/gello_software.git /tmp/gello_software
+cd /tmp/gello_software
 pip install -e .
+cd -
 ```
 
-Install the Gello Python package according to the Gello project you are using. After installation, the following imports should work:
+After installation, verify the following imports work:
 
 ```bash
-python -c "from gello.dynamixel.driver import DynamixelDriver; from gello.agents.gello_agent import GelloAgent"
-python -c "from xarm.wrapper import XArmAPI"
+python -c "from gello.dynamixel.driver import DynamixelDriver; from gello.agents.gello_agent import GelloAgent;from xarm.wrapper import XArmAPI"
 ```
 
 Configure serial permissions:

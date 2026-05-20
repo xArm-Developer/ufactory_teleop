@@ -51,15 +51,21 @@ cd ufactory_teleop/pika_teleop
 Create and activate a virtual environment:
 
 ```bash
-python3.9 -m venv py39
-source py39/bin/activate
+conda create --name py39 python=3.9
+conda activate py39
 ```
 
-Install dependencies:
+Install Python dependencies:
 
 ```bash
 pip install -r requirements.txt
-pip install pysurvive
+pip install pysurvive agx-pypika --no-deps
+```
+
+After installation, verify the following imports work:
+
+```bash
+python -c "import pysurvive;from pika.sense import Sense;from pika.gripper import Gripper;from xarm.wrapper import XArmAPI"
 ```
 
 Install USB and device rules:

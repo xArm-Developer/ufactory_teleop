@@ -55,24 +55,25 @@ cd ufactory_teleop/gello_teleop
 创建并激活虚拟环境：
 
 ```bash
-python3.9 -m venv py39
-source py39/bin/activate
+conda create --name py39 python=3.9
+conda activate py39
 ```
 
-安装基础依赖：
+安装 Python 依赖：
 
 ```bash
 pip install -r requirements.txt
-cd src/gello
-pip install -e third_party/DynamixelSDK/python
+pip install pysurvive agx-pypika --no-deps
+git clone https://github.com/wuphilipp/gello_software.git /tmp/gello_software
+cd /tmp/gello_software
 pip install -e .
+cd -
 ```
 
 安装后需要保证以下导入可以成功：
 
 ```bash
-python -c "from gello.dynamixel.driver import DynamixelDriver; from gello.agents.gello_agent import GelloAgent"
-python -c "from xarm.wrapper import XArmAPI"
+python -c "from gello.dynamixel.driver import DynamixelDriver; from gello.agents.gello_agent import GelloAgent;from xarm.wrapper import XArmAPI"
 ```
 
 配置串口权限：
