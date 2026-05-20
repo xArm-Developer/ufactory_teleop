@@ -89,6 +89,9 @@ class PikaDevice(object):
         use_pika_sense = self._dev_type in [1, 3]
         use_pika_gripper = self._dev_type in [2, 3]
 
+        self._pika_sense = None
+        self._pika_gripper = None
+
         if (use_pika_sense and self._pika_sense_port is None) or (use_pika_gripper and self._pika_gripper_port is None):
             pika_ports = get_serial_ports()
             if not pika_ports:
@@ -121,8 +124,6 @@ class PikaDevice(object):
         if use_pika_gripper:
             print('Pika Gripper 设备:', self._pika_gripper_port)
 
-        self._pika_sense = None
-        self._pika_gripper = None
         self.pika_tracker_device = None
     
     # def __new__(cls, *args, **kwargs):

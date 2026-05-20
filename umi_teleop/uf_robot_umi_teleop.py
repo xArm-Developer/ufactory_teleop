@@ -35,7 +35,6 @@ class UmiTeleopConfig:
 class UFRobotTeleop(object):
     def __init__(self, config: UmiTeleopConfig, robot_config: UFRobotConfig):
         self.config = config
-        self.robot = UFRobot(robot_config)
 
         init_slam = not self.config.use_vive_tracker
         init_clamp_stream = self.config.use_gripper
@@ -46,6 +45,8 @@ class UFRobotTeleop(object):
         else:
             self.tracker = None
         self.xvlib = XVLib(self.config.serial_number, init_slam, init_clamp_stream)
+
+        self.robot = UFRobot(robot_config)
 
         tracker_to_robot_eef = self.config.tracker_to_robot_eef
         self.tracker_to_robot_matrix = Transformations.xyzrpy_to_rotation_matrix(*tracker_to_robot_eef)
