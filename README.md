@@ -27,13 +27,17 @@ ufactory_teleop/
 │   ├── calibrate.py
 │   ├── config/
 │   └── rules/
-└── umi_teleop/               # UMI teleoperation solution
-    ├── uf_robot_umi_teleop.py
-    ├── uf_robot_umi_teleop_dual.py
-    ├── calibrate.py
+├── umi_teleop/               # UMI teleoperation solution
+│   ├── uf_robot_umi_teleop.py
+│   ├── uf_robot_umi_teleop_dual.py
+│   ├── calibrate.py
+│   ├── config/
+│   ├── rules/
+│   └── xvsdk/
+└── gello_teleop/             # Gello teleoperation solution
+    ├── uf_robot_gello_teleop.py
     ├── config/
-    ├── rules/
-    └── xvsdk/
+    └── rules/
 ```
 
 ## Teleoperation Solutions
@@ -62,7 +66,17 @@ Using FAST UMI devices for low-cost, intuitive teleoperation. Supports both sing
 For details, see [umi_teleop/README.md](umi_teleop/README.md).
 
 ### Gello Teleoperation Solution
-For details, see [lerobot_ufactory_usage](https://github.com/xArm-Developer/lerobot/tree/main/src/lerobot/ufactory_usage).
+
+A joint-space teleoperation system using the Gello leader arm (Dynamixel servo-based haptic input device) to control xArm robots. Joint positions are read via serial port, and auto-offset calibration maps them to robot target joint angles.
+
+- **Control Space**: Joint space (robot_mode: 6), directly mapping leader arm joint motion
+- **Supported Robots**: xArm5, xArm6, xArm7 (with corresponding example configs)
+- **Joint Mapping**: Configurable via `joint_ids` and `joint_signs` for flexible Gello-to-robot mapping
+- **Auto-Offset**: Automatically reads Gello's current pose at startup and computes joint offsets
+- **Torque Mode**: Unmapped Dynamixel joints can be held via `torque_joint_ids` with torque enabled
+- **Gripper Support**: Optional Gello-side Dynamixel gripper, supports xArm Gripper (G1/G2), Pika Gripper, Robotiq Gripper
+
+For details, see [gello_teleop/README.md](gello_teleop/README.md).
 
 ## Features
 
@@ -111,6 +125,23 @@ Quick start (dual arm):
 
 ```bash
 python uf_robot_umi_teleop_dual.py --config config/xarm6_umi_teleop_dual.yaml
+```
+
+### Gello Teleoperation
+
+Please refer to the detailed documentation in [gello_teleop/README.md](gello_teleop/README.md).
+
+Quick start:
+
+```bash
+cd ufactory_teleop/gello_teleop
+python3.9 -m venv py39 && source py39/bin/activate
+pip install -r requirements.txt
+cd src/gello
+pip install -e third_party/DynamixelSDK/python && pip install -e .
+sudo usermod -aG dialout $USER
+# Re-login then run
+python uf_robot_gello_teleop.py --config config/xarm7_gello_teleop.yaml
 ```
 
 ## References

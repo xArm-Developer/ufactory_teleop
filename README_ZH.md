@@ -27,13 +27,17 @@ ufactory_teleop/
 │   ├── calibrate.py
 │   ├── config/
 │   └── rules/
-└── umi_teleop/               # UMI 遥操作方案
-    ├── uf_robot_umi_teleop.py
-    ├── uf_robot_umi_teleop_dual.py
-    ├── calibrate.py
+├── umi_teleop/               # UMI 遥操作方案
+│   ├── uf_robot_umi_teleop.py
+│   ├── uf_robot_umi_teleop_dual.py
+│   ├── calibrate.py
+│   ├── config/
+│   ├── rules/
+│   └── xvsdk/
+└── gello_teleop/             # Gello 遥操作方案
+    ├── uf_robot_gello_teleop.py
     ├── config/
-    ├── rules/
-    └── xvsdk/
+    └── rules/
 ```
 
 ## 遥操作方案
@@ -62,7 +66,17 @@ ufactory_teleop/
 详见 [umi_teleop/README_ZH.md](umi_teleop/README_ZH.md)。
 
 ### Gello 遥操作方案
-详见 [lerobot_ufactory_usage](https://github.com/xArm-Developer/lerobot/tree/main/src/lerobot/ufactory_usage)。
+
+使用 Gello 主手（基于 Dynamixel 伺服的触觉输入设备）在关节空间对 xArm 机械臂进行遥操作控制。通过串口读取 Gello 关节位置，自动计算关节偏置后映射为机器人目标关节角。
+
+- **控制空间**：关节空间（robot_mode: 6），直接映射主手关节运动
+- **支持机型**：xArm5、xArm6、xArm7（提供对应示例配置）
+- **关节映射**：可通过 `joint_ids` 和 `joint_signs` 灵活配置 Gello 关节到机器人关节的映射关系
+- **自动偏置**：启动时自动读取 Gello 当前姿态并计算关节偏置
+- **力矩模式**：不参与映射的 Dynamixel 关节可通过 `torque_joint_ids` 开启力矩模式以保持固定
+- **夹爪支持**：可选 Gello 侧 Dynamixel 夹爪，支持 xArm Gripper (G1/G2)、Pika Gripper、Robotiq Gripper
+
+详见 [gello_teleop/README_ZH.md](gello_teleop/README_ZH.md)。
 
 
 ## 功能特性
@@ -112,6 +126,23 @@ python uf_robot_umi_teleop.py --config config/xarm6_umi_teleop.yaml
 
 ```bash
 python uf_robot_umi_teleop_dual.py --config config/xarm6_umi_teleop_dual.yaml
+```
+
+### Gello 遥操作
+
+详见 [gello_teleop/README_ZH.md](gello_teleop/README_ZH.md)。
+
+快速启动：
+
+```bash
+cd ufactory_teleop/gello_teleop
+python3.9 -m venv py39 && source py39/bin/activate
+pip install -r requirements.txt
+cd src/gello
+pip install -e third_party/DynamixelSDK/python && pip install -e .
+sudo usermod -aG dialout $USER
+# 重新登录后运行
+python uf_robot_gello_teleop.py --config config/xarm7_gello_teleop.yaml
 ```
 
 ## 参考资料
