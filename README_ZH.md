@@ -3,10 +3,10 @@
 本项目为 UFACTORY (深圳市众为创造科技有限公司) 机械臂提供遥操作解决方案，包含三套独立方案：
 
 1. **基于 Pika Sense 的遥操作**：利用 Agilex Robotics 的 Pika Sense 技术实现精准运动跟踪与控制。
-[![观看视频](assets/pika_teleoperation_system.jpg)](https://www.youtube.com/watch?v=D4L1dyyBriA)
+[![观看视频](assets/pika_teleoperation_system.jpg)](https://www.bilibili.com/video/BV1791rB4Egk/?spm_id_from=333.1387)
 2. **UMI 遥操作**：使用 FAST UMI 设备进行运动捕捉与控制。
-3. **基于 GELLO 的遥操作框架**：基于开源 GELLO 框架（https://wuphilipp.github.io/gello_site/）的理念
-![alt text](assets/gello.png)
+3. **基于 GELLO 的遥操作框架**：基于开源 GELLO 框架（https://wuphilipp.github.io/gello_site/）的理念  
+[![观看视频](assets/gello.png)](https://www.bilibili.com/video/BV12xFjzzEaX/?spm_id_from=333.1387)
 
 ## 概述
 

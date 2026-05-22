@@ -6,7 +6,7 @@ This project provides teleoperation solutions for UFACTORY (深圳市众为创�
 [![Watch the video](assets/pika_teleoperation_system.jpg)](https://www.youtube.com/watch?v=D4L1dyyBriA)
 2. **UMI Teleoperation**: Using FAST UMI devices for motion capture and control.
 3. **GELLO-inspired Framework**: Based on concepts from the open-source GELLO framework (https://wuphilipp.github.io/gello_site/)
-![alt text](assets/gello.png)
+[![Watch the video](assets/gello.png)](https://www.youtube.com/watch?v=wTiWLiHciT8)
 
 ## Overview
 
