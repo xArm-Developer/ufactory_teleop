@@ -1,6 +1,6 @@
 # UMI 遥操作使用文档
 
-使用 LUMOS(鹿明机器人科技有限公司) 的FastUMI (https://www.fastumi.com/)   
+使用 LUMOS(鹿明机器人科技有限公司) 的FastUMI (https://lumosumi.lumosbot.tech/pro/)   
 对 UFACTORY(深圳市众为创造科技有限公司) 的机械臂(https://www.ufactory.cc/xarm-collaborative-robot/) 进行遥操作控制。  
 
 GitHub: https://github.com/xArm-Developer/ufactory_teleop

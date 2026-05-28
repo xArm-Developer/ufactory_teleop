@@ -5,6 +5,7 @@ This project provides teleoperation solutions for UFACTORY (深圳市众为创�
 1. **Pika Sense-based Teleoperation**: Utilizing Agilex Robotics' Pika Sense technology for precise motion tracking and control.
 [![Watch the video](assets/pika_teleoperation_system.jpg)](https://www.youtube.com/watch?v=D4L1dyyBriA)
 2. **UMI Teleoperation**: Using FAST UMI devices for motion capture and control.
+[![Watch the video](assets/fastumi.jpg)](https://youtu.be/qlVHa8qA6oo)
 3. **GELLO-inspired Framework**: Based on concepts from the open-source GELLO framework (https://wuphilipp.github.io/gello_site/)
 [![Watch the video](assets/gello.png)](https://www.youtube.com/watch?v=wTiWLiHciT8)
 
@@ -54,7 +55,7 @@ For details, see [pika_teleop/README.md](pika_teleop/README.md).
 
 ### UMI Teleoperation Solution
 
-Using FAST UMI devices for low-cost, intuitive teleoperation. Supports both single-arm and dual-arm setups with flexible tracking options.
+Using FastUMI for intuitive teleoperation. Supports both single-arm and dual-arm setups with flexible tracking options.
 
 - **Tracking**: UMI built-in SLAM or HTC Vive Tracker + Lighthouse base stations (configurable)
 - **Control**: Single-arm (`uf_robot_umi_teleop.py`) and dual-arm (`uf_robot_umi_teleop_dual.py`) teleoperation

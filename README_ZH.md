@@ -5,6 +5,7 @@
 1. **基于 Pika Sense 的遥操作**：利用 Agilex Robotics 的 Pika Sense 技术实现精准运动跟踪与控制。
 [![观看视频](assets/pika_teleoperation_system.jpg)](https://www.bilibili.com/video/BV1791rB4Egk/?spm_id_from=333.1387)
 2. **UMI 遥操作**：使用 FAST UMI 设备进行运动捕捉与控制。
+[![观看视频](assets/fastumi.jpg)](https://www.bilibili.com/video/BV1qAGm6fEZE/?spm_id_from=333.1387)
 3. **基于 GELLO 的遥操作框架**：基于开源 GELLO 框架（https://wuphilipp.github.io/gello_site/）的理念  
 [![观看视频](assets/gello.png)](https://www.bilibili.com/video/BV12xFjzzEaX/?spm_id_from=333.1387)
 
@@ -54,7 +55,7 @@ ufactory_teleop/
 
 ### UMI 遥操作方案
 
-使用 FAST UMI 设备实现低成本、直观的遥操作。支持单臂和双臂配置，提供灵活的跟踪选项。
+使用 FastUMI 设备实现直观的遥操作。支持单臂和双臂配置，提供灵活的跟踪选项。
 
 - **跟踪方式**：UMI 内置 SLAM 或 HTC Vive Tracker + Lighthouse 基站（可配置切换）
 - **控制方式**：单臂（`uf_robot_umi_teleop.py`）与双臂（`uf_robot_umi_teleop_dual.py`）遥操作
