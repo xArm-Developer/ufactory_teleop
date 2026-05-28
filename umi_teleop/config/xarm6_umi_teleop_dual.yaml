@@ -3,7 +3,7 @@ L:
   RobotConfig:
     robot_ip: "192.168.1.29"
     gripper_type: 2
-    start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
+    start_joints: [0, -0.2268928, -0.418879, -3.1415927, 0.942477796, -1.570796]
     start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
 
   TeleoperatorConfig:
@@ -17,7 +17,7 @@ R:
   RobotConfig:
     robot_ip: "192.168.1.195"
     gripper_type: 2
-    start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
+    start_joints: [0, -0.2268928, -0.418879, -3.1415927, 0.942477796, -1.570796]
     start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
 
   TeleoperatorConfig:
