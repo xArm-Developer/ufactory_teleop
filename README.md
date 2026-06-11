@@ -144,10 +144,6 @@ conda create --name py39 python=3.9
 conda activate py39
 pip install -r requirements.txt
 pip install pysurvive agx-pypika --no-deps
-git clone https://github.com/wuphilipp/gello_software.git /tmp/gello_software
-cd /tmp/gello_software
-pip install -e .
-cd -
 sudo usermod -aG dialout $USER
 # Re-login then run
 python uf_robot_gello_teleop.py --config config/xarm7_gello_teleop.yaml

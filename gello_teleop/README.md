@@ -64,11 +64,6 @@ Install Python dependencies:
 ```bash
 pip install -r requirements.txt
 pip install pysurvive agx-pypika --no-deps
-git clone https://github.com/wuphilipp/gello_software.git /tmp/gello_software
-cd /tmp/gello_software
-pip install .
-cd -
-rm -rf /tmp/gello_software
 ```
 
 After installation, verify the following imports work:

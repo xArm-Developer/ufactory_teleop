@@ -182,7 +182,7 @@ class RgbImageData(ctypes.Structure):
         ("edgeTimestampUs", ctypes.c_longlong)
     ]
     def frame(self, rgb=False):
-        rgb_frame = np.frombuffer(self.data[:self.dataSize], dtype=np.uint8).reshape((self.height, self.width, 3))
+        rgb_frame = np.frombuffer(bytes(self.data[:self.dataSize]), dtype=np.uint8).reshape((self.height, self.width, 3))
         if rgb:
             return rgb_frame.copy()
         # RGB => BGR
