@@ -28,8 +28,8 @@ class Transformations:
     @staticmethod
     def rotation_matrix_to_quaternion(R):
         """
-        将3x3变换矩阵转换四元数
-        注: 四元素顺序为xyzw
+        从 3x3 变换矩阵 或 4x4 齐次变换矩阵提取旋转部分并转换为四元数
+        注: 四元素顺序为 xyzw
         """
         # 提取旋转矩阵部分
         rot_matrix = R[:3, :3]
@@ -105,13 +105,9 @@ class Transformations:
         return roll, pitch, yaw
     
     @staticmethod
-    def rxryrz_to_matrix(axis_angle):
-        """
-        将轴角向量 (rx, ry, rz) 转换为 3x3 旋转矩阵。
-        输入: np.array([rx, ry, rz])
-            - 方向: 旋转轴
-            - 模长: 旋转角度 (弧度)
-        """
+    def rxryrz_to_rotation_matrix(rx, ry, rz):
+        """轴角rxryrz到旋转矩阵的转换"""
+        axis_angle = [rx, ry, rz]
         theta = np.linalg.norm(axis_angle)
         
         # 如果角度接近0，返回单位矩阵
@@ -140,7 +136,7 @@ class Transformations:
     @staticmethod
     def rotation_matrix_to_rxryrz(R):
         """
-        旋转矩阵到轴角的转换 (rx, ry, rz = aixs * angle)
+        旋转矩阵到轴角的转换 (rx, ry, rz = axis * angle)
         返回: rx, ry, rz
         """
         R = np.asarray(R)
@@ -208,6 +204,14 @@ class Transformations:
         return T
     
     @classmethod
+    def xyzrxryrz_to_rotation_matrix(cls, x, y, z, rx, ry, rz):
+        """构造4x4齐次变换矩阵"""
+        T = np.eye(4)
+        T[:3, :3] = cls.rxryrz_to_rotation_matrix(rx, ry, rz)
+        T[:3, 3] = [x, y, z]
+        return T
+
+    @classmethod
     def rotation_matrix_to_xyzq(cls, rotation_matrix):
         """从4x4齐次变换矩阵到xyzq的转换"""
         x, y, z = rotation_matrix[0, 3], rotation_matrix[1, 3], rotation_matrix[2, 3]
@@ -241,8 +245,8 @@ class Transformations:
         # 机械臂目标位置对应的变换矩阵
         # 机械臂目标 = 机械臂初始位置 + (当前手姿 - 初始手姿)
         delta_matrix = np.dot(np.linalg.inv(begin_tracker_robot_matrix), end_tracker_robot_matrix)
-        robot_martix = np.dot(robot_base_matrix, delta_matrix)
+        robot_matrix = np.dot(robot_base_matrix, delta_matrix)
         if is_axis_angle:
-            return cls.rotation_matrix_to_xyzrxryrz(robot_martix)
+            return cls.rotation_matrix_to_xyzrxryrz(robot_matrix)
         else:
-            return cls.rotation_matrix_to_xyzrpy(robot_martix)
+            return cls.rotation_matrix_to_xyzrpy(robot_matrix)

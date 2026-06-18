@@ -2,26 +2,19 @@ import sys
 import ctypes
 import logging
 import threading
-import pysurvive
 import numpy as np
 from .transformations import Transformations
 
-# 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('uf.vive_tracker')
 
 
 class Vector(ctypes.Structure):
     def __getitem__(self, index):
-        # 获取字段名列表
         field_name = self._fields_[index][0]
-        # 使用 getattr 获取对应属性的值
         return getattr(self, field_name)
 
     def __setitem__(self, index, value):
-        # 获取字段名列表
         field_name = self._fields_[index][0]
-        # 使用 setattr 设置对应属性的值
         setattr(self, field_name, value)
     
     def __str__(self):
@@ -48,15 +41,16 @@ class Vector4D(Vector):
     ]
 
 
-class PoseData(ctypes.Structure):
+class TrackerPose(ctypes.Structure):
     _fields_ = [
         ("position", Vector3D),
-        # ("orientation", Vector3D),
         ("quaternion", Vector4D),
         ("hostTimestamp", ctypes.c_double),
-        # ("edgeTimestampUs", ctypes.c_longlong),
-        # ("confidence", ctypes.c_double)
     ]
+
+
+def _to_str(v):
+    return v.decode("utf-8") if isinstance(v, bytes) else str(v)
 
 
 class SingletonMeta(type):
@@ -69,118 +63,118 @@ class SingletonMeta(type):
 
 
 class ViveTracker(metaclass=SingletonMeta):
-    # _instance = None
-    # _initialized = False
     def __init__(self, config_path=None, lh_config=None, args=None):
-        # if self._initialized:
-        #     return
-        # self._initialized = True
-        self.config_path = config_path
-        self.lh_config = lh_config
-        self.args = args if args else []
+        if hasattr(self, '_initialized'):
+            return
+        self._initialized = True
+        self._config_path = config_path
+        self._lh_config = lh_config
+        self._args = args if args else []
         self.running = False
-        self.context = None
-        self.collector_thread = None
-        self.data_lock = threading.Lock()
-        self.latest_poses = {}
-        self.latest_raw_poses = {}
-        self.init()
-    
-    # def __new__(cls, *args, **kwargs):
-    #     if cls._instance is None:
-    #         cls._instance = super().__new__(cls)
-    #     return cls._instance
+        self._context = None
+        self._collector_thread = None
+        self._data_lock = threading.Lock()
+        self._latest_poses = {}
+        self._latest_raw_poses = {}
+        if not self._init():
+            raise RuntimeError("Failed to initialize Vive Tracker: pysurvive context creation failed")
     
     def __del__(self):
-        logger.info("正在停止Vive Tracker位姿追踪...")
+        logger.info("Stopping Vive Tracker pose tracking...")
         self.running = False
         # 等待线程结束
-        if self.collector_thread:
-            self.collector_thread.join(timeout=2.0)
+        if self._collector_thread:
+            self._collector_thread.join(timeout=2.0)
         # 清理资源
-        self.context = None
-        logger.info("Vive Tracker已断开连接")
+        self._context = None
+        logger.info("Vive Tracker disconnected")
     
-    @staticmethod
-    def to_str(v):
-        return v.decode("utf-8") if isinstance(v, bytes) else str(v)
+    # def list_devices(self):
+    #     import pysurvive
+    #     for obj in self._context.Objects():
+    #         name = _to_str(obj.Name())
+    #         serial_number = None
+    #         if hasattr(pysurvive, "simple_serial_number"):
+    #             serial_number = _to_str(pysurvive.simple_serial_number(obj.ptr))
+    #         print("object:", name, "serial:", serial_number)
+
+    def get_tracked_device_names(self):
+        return [key for key in self._latest_poses.keys() if not key.startswith('WM')]
     
-    def list_devices(self):
-        # import pysurvive
-        # for obj in self.context.Objects():
-        #     name = self.to_str(obj.Name())
-        #     serial_number = None
-        #     if hasattr(pysurvive, "simple_serial_number"):
-        #         serial_number = self.to_str(pysurvive.simple_serial_number(obj.ptr))
-        #     print("object:", name, "serial:", serial_number)
-        return [key for key in self.latest_poses.keys() if not key.startswith('WM')]
-    
-    def init(self):
+    def _init(self):
+        import pysurvive  # 延迟导入，避免未安装时影响 umi 包的整体导入
+        self._pysurvive = pysurvive
         # 构建pysurvive参数
         survive_args = sys.argv[:1]  # 保留程序名
         
         # 添加配置文件参数
-        if self.config_path:
-            survive_args.extend(['--config', self.config_path])
+        if self._config_path:
+            survive_args.extend(['--config', self._config_path])
         
         # 添加灯塔配置参数
-        if self.lh_config:
-            survive_args.extend(['--lh', self.lh_config])
+        if self._lh_config:
+            survive_args.extend(['--lh', self._lh_config])
         
         # 添加其他参数
-        survive_args.extend(self.args)
+        survive_args.extend(self._args)
         try:
-            logger.info("正在初始化pysurvive...")
-            self.context = pysurvive.SimpleContext(survive_args)
-            if not self.context:
-                logger.error("错误: 无法初始化pysurvive上下文")
+            logger.info("Initializing pysurvive...")
+            self._context = pysurvive.SimpleContext(survive_args)
+            if not self._context:
+                logger.error("Error: failed to initialize pysurvive context")
                 return False
 
-            logger.info("pysurvive初始化成功")
+            logger.info("pysurvive initialized successfully")
             # 标记为运行状态
             self.running = True
 
             # 创建并启动位姿收集线程
-            self.collector_thread = threading.Thread(target=self._pose_collector)
-            self.collector_thread.daemon = True
-            self.collector_thread.start()
+            self._collector_thread = threading.Thread(target=self._pose_collector)
+            self._collector_thread.daemon = True
+            self._collector_thread.start()
         except Exception as e:
-            logger.error(f"连接Vive Tracker时发生错误: {e}")
+            logger.error(f"Error connecting to Vive Tracker: {e}")
             self.running = False
             return False
     
     def _pose_collector(self):
-        initial_rotation = Transformations.xyzrpy_to_rotation_matrix(0, 0, 0, -30 / 180.0 * np.pi, 0, 0)
-
-        # alignment_rotation = Transformations.xyzrpy_to_rotation_matrix(0, 0, 0, -np.pi / 2, -np.pi / 2, 0)
-        alignment_rotation = Transformations.xyzrpy_to_rotation_matrix(0, 0, 0, -np.pi / 2, np.pi, np.pi)
-
-        rotate_matrix = np.dot(initial_rotation, alignment_rotation)
-        # 应用平移变换 - 将采集到的pose数据变换到夹爪中心
-        # transform_matrix = Transformations.xyzrpy_to_rotation_matrix(0.172, 0, -0.076, 0, 0, 0)
-        # transform_matrix = Transformations.xyzrpy_to_rotation_matrix(0, 0, 0, 0, 0, 0)
-
-        # tracker_to_robot_matrix = Transformations.xyzrpy_to_rotation_matrix(0, 0, 0, np.pi, 0, np.pi)
-        tracker_to_robot_matrix = Transformations.xyzrpy_to_rotation_matrix(0, 0, 0, 0, 0, -np.pi / 2)
-        
-        robot_base_matrix = Transformations.xyzrpy_to_rotation_matrix(*[0, 0, 0, np.pi, -np.pi / 2, 0])
-        begin_tracker_robot_matrix = None
-        
+        if not hasattr(self, '_pysurvive'):
+            return
         cnt = 0
-        
+        pysurvive = self._pysurvive
+
+        # —————————————————————————————— 位姿变换矩阵常量 ——————————————————————————————
+        # initial_rotation: 初始旋转补偿 (roll=-30°)
+        _INITIAL_ROTATION = Transformations.xyzrpy_to_rotation_matrix(0, 0, 0, -30 / 180.0 * np.pi, 0, 0)
+        # alignment_rotation: 坐标系对齐 (pitch=-90°, roll=180°, yaw=180°)
+        # _ALIGNMENT_ROTATION = Transformations.xyzrpy_to_rotation_matrix(0, 0, 0, -np.pi / 2, -np.pi / 2, 0)
+        _ALIGNMENT_ROTATION = Transformations.xyzrpy_to_rotation_matrix(0, 0, 0, -np.pi / 2, np.pi, np.pi)
+        # rotate_matrix: 合并后的 tracker 坐标旋转矩阵
+        _ROTATE_MATRIX = np.dot(_INITIAL_ROTATION, _ALIGNMENT_ROTATION)
+        # 应用平移变换 - 将采集到的pose数据变换到夹爪中心
+        # _TRANSFORM_MATRIX = Transformations.xyzrpy_to_rotation_matrix(0.172, 0, -0.076, 0, 0, 0)
+        # _TRANSFORM_MATRIX = Transformations.xyzrpy_to_rotation_matrix(0, 0, 0, 0, 0, 0)
+        # tracker_to_robot: tracker 到机械臂基座的固定变换
+        _TRACKER_TO_ROBOT_MATRIX = Transformations.xyzrpy_to_rotation_matrix(0, 0, 0, 0, 0, -np.pi / 2)
+        # robot_base: 机械臂基座位姿
+        _ROBOT_BASE_MATRIX = Transformations.xyzrpy_to_rotation_matrix(*[0, 0, 0, np.pi, -np.pi / 2, 0])
+        # 初始化阶段跳过帧数（让传感器数据稳定）
+        _SKIP_FRAMES = 100
+        # ———————————————————————————————————————————————————————————————————————————
+
         # 持续获取最新位姿
-        while self.running and self.context.Running():
-            updated = self.context.NextUpdated()
+        while self.running and self._context.Running():
+            updated = self._context.NextUpdated()
             if not updated:
                 continue
-            if cnt < 100:
+            if cnt < _SKIP_FRAMES:
                 cnt += 1
                 continue
-            # 获取设备名称
-            device_name = str(updated.Name(), 'utf-8')
+            # 获取设备名称，使用 replace 容错处理非 UTF-8 字节
+            device_name = str(updated.Name(), 'utf-8', errors='replace')
             serial_number = None
             if hasattr(pysurvive, "simple_serial_number"):
-                serial_number = self.to_str(pysurvive.simple_serial_number(updated.ptr))
+                serial_number = _to_str(pysurvive.simple_serial_number(updated.ptr))
             # 获取位姿数据
             pose_obj = updated.Pose()
             pose_data = pose_obj[0]  # 位姿数据
@@ -188,47 +182,38 @@ class ViveTracker(metaclass=SingletonMeta):
             position = [pose_data.Pos[0], pose_data.Pos[1], pose_data.Pos[2]]
             quaternion = [pose_data.Rot[1], pose_data.Rot[2], pose_data.Rot[3], pose_data.Rot[0]]
             origin_mat = Transformations.xyzq_to_rotation_matrix(*position, quaternion)
-            # tracker_matrix = np.dot(origin_mat, rotate_matrix)
-            tracker_matrix = np.matmul(origin_mat, rotate_matrix)
-            # tracker_matrix = np.matmul(np.matmul(origin_mat, rotate_matrix), transform_matrix)
+            # tracker_matrix = np.dot(origin_mat, _ROTATE_MATRIX)
+            tracker_matrix = np.matmul(origin_mat, _ROTATE_MATRIX)
+            # tracker_matrix = np.matmul(np.matmul(origin_mat, _ROTATE_MATRIX), _TRANSFORM_MATRIX)
 
             x, y, z, q = Transformations.rotation_matrix_to_xyzq(tracker_matrix)
-            pose_data = PoseData(position=Vector3D(x, y, z), quaternion=Vector4D(*q), hostTimestamp=timestamp)
-            pose_raw_data = PoseData(position=Vector3D(*position), quaternion=Vector4D(*quaternion), hostTimestamp=timestamp)
-            with self.data_lock:
-                self.latest_poses[device_name] = pose_data
-                self.latest_raw_poses[device_name] = pose_raw_data
+            tracker_pose = TrackerPose(position=Vector3D(x, y, z), quaternion=Vector4D(*q), hostTimestamp=timestamp)
+            tracker_raw_pose = TrackerPose(position=Vector3D(*position), quaternion=Vector4D(*quaternion), hostTimestamp=timestamp)
+            with self._data_lock:
+                self._latest_poses[device_name] = tracker_pose
+                self._latest_raw_poses[device_name] = tracker_raw_pose
                 if serial_number:
-                    self.latest_poses[serial_number] = pose_data
-                    self.latest_raw_poses[serial_number] = pose_raw_data
-
-            # tracker_robot_matrix = np.dot(tracker_matrix, tracker_to_robot_matrix)
-            # if begin_tracker_robot_matrix is None:
-            #     begin_tracker_robot_matrix = tracker_robot_matrix
-            # pose = Transformations.tracker_robot_matrix_to_robot_pose(begin_tracker_robot_matrix, tracker_robot_matrix, robot_base_matrix, is_axis_angle=True)
-
-            # pose_data = PoseData(position=Vector3D(*pose[:3]), orientation=Vector3D(*pose[3:]), quaternion=Vector4D(*quaternion), hostTimestamp=timestamp)
-            # with self.data_lock:
-            #     self.latest_poses[device_name] = pose_data
+                    self._latest_poses[serial_number] = tracker_pose
+                    self._latest_raw_poses[serial_number] = tracker_raw_pose
 
     def get_pose(self, device_name=None):
         if device_name:
-            with self.data_lock:
-                if device_name in self.latest_poses:
-                    return self.latest_poses[device_name]
+            with self._data_lock:
+                if device_name in self._latest_poses:
+                    return self._latest_poses[device_name]
                 else:
                     return None
         else:
-            with self.data_lock:
-                return self.latest_poses.copy()
+            with self._data_lock:
+                return self._latest_poses.copy()
     
     def get_raw_pose(self, device_name=None):
         if device_name:
-            with self.data_lock:
-                if device_name in self.latest_raw_poses:
-                    return self.latest_raw_poses[device_name]
+            with self._data_lock:
+                if device_name in self._latest_raw_poses:
+                    return self._latest_raw_poses[device_name]
                 else:
                     return None
         else:
-            with self.data_lock:
-                return self.latest_raw_poses.copy()
+            with self._data_lock:
+                return self._latest_raw_poses.copy()
