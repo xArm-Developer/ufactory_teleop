@@ -3,27 +3,47 @@ import time
 import threading
 import ctypes
 import ctypes.util
-import cv2
 import logging
 import numpy as np
 
 logger = logging.getLogger('uf.xvlib')
 
-_rotate_codes = {
-    90:  cv2.ROTATE_90_CLOCKWISE,
-    -90: cv2.ROTATE_90_COUNTERCLOCKWISE,
-    180: cv2.ROTATE_180,
-}
+# cv2 在 .frame() 方法中延迟导入，避免模块顶层强依赖 OpenCV
+_cv2 = None
+_rotate_codes = None
+
+
+def _get_cv2():
+    """延迟导入 cv2, 避免未安装 opencv 时阻塞模块加载"""
+    global _cv2
+    if _cv2 is None:
+        import cv2 as _cv2_mod
+        _cv2 = _cv2_mod
+    return _cv2
+
+
+def _get_rotate_codes():
+    """延迟初始化旋转代码映射表"""
+    global _rotate_codes
+    if _rotate_codes is None:
+        cv2 = _get_cv2()
+        _rotate_codes = {
+            90: cv2.ROTATE_90_CLOCKWISE,
+            -90: cv2.ROTATE_90_COUNTERCLOCKWISE,
+            180: cv2.ROTATE_180,
+        }
+    return _rotate_codes
+
 
 def _apply_rotate(frame, rotate):
     """如果 rotate 不为 None, 对 frame 应用旋转"""
     if rotate is None or frame is None or (isinstance(rotate, int) and rotate == 0):
         return frame
-    code = _rotate_codes.get(rotate) if isinstance(rotate, int) else rotate
+    code = _get_rotate_codes().get(rotate) if isinstance(rotate, int) else rotate
     if code is None:
         logger.warning(f"Unknown rotate value: {rotate}, skipping")
         return frame
-    return cv2.rotate(frame, code)
+    return _get_cv2().rotate(frame, code)
 
 # ============== 数据缓冲区常量 (与 C++ xv_device.h 保持一致) ==============
 _MAX_COLOR_BUFFER_SIZE = 1280 * 1280 * 3    # MAX_COLOR_BUFFER_SIZE
@@ -110,6 +130,7 @@ class ColorImageData(ctypes.Structure):
         ("edgeTimestampUs", ctypes.c_longlong)
     ]
     def frame(self, rgb=False, rotate=None):
+        cv2 = _get_cv2()
         np_array = np.frombuffer(self.data, dtype=np.uint8, count=self.dataSize)
         if self.codec == 0: # YUYV 格式, 重塑为 (h, w, 2)，因为每两个字节包含 Y 和 UV 信息
             yuv_mat = np_array.reshape((self.height, self.width, 2))
@@ -150,6 +171,7 @@ class DepthImageData(ctypes.Structure):
         ("edgeTimestampUs", ctypes.c_longlong)
     ]
     def frame(self, rotate=None):
+        cv2 = _get_cv2()
         np_array = np.frombuffer(self.data, dtype=np.uint8, count=self.dataSize)
         if self.type == 0: # Depth_16, 数据大小应为 w * h * 2
             # 1. 转换为 uint16 类型
@@ -208,6 +230,7 @@ class GrayScaleImage(ctypes.Structure):
     ]
     def frame(self, rotate=None):
         """返回 BGR 三通道图像，兼容 cv2.imshow 显示"""
+        cv2 = _get_cv2()
         max_size = _MAX_GRAY_BUFFER_SIZE
         needed = self.width * self.height
         if needed > max_size:
@@ -237,6 +260,7 @@ class FisheyeImagesData(ctypes.Structure):
         if index_valid:
             return self.images[index].frame(rotate=rotate)
         else:
+            cv2 = _get_cv2()
             frame0 = cv2.resize(self.images[0].frame(), (self._DISPLAY_WIDTH, self._DISPLAY_HEIGHT))
             frame1 = cv2.resize(self.images[1].frame(), (self._DISPLAY_WIDTH, self._DISPLAY_HEIGHT))
             frame2 = cv2.resize(self.images[2].frame(), (self._DISPLAY_WIDTH, self._DISPLAY_HEIGHT))
@@ -263,6 +287,7 @@ class EyetrackingImageData(ctypes.Structure):
         if index_valid:
             return self.images[index].frame(rotate=rotate)
         else:
+            cv2 = _get_cv2()
             frame0 = cv2.resize(self.images[0].frame(), (self._DISPLAY_WIDTH, self._DISPLAY_HEIGHT))
             frame1 = cv2.resize(self.images[1].frame(), (self._DISPLAY_WIDTH, self._DISPLAY_HEIGHT))
             frame2 = cv2.resize(self.images[2].frame(), (self._DISPLAY_WIDTH, self._DISPLAY_HEIGHT))
@@ -288,6 +313,7 @@ class ColorImageDataRef(ctypes.Structure):
         """零拷贝帧解码 — 从 SDK buffer 指针直接构造 numpy 数组"""
         if self.data_size == 0 or not self.data_ptr:
             return None
+        cv2 = _get_cv2()
         buf = (ctypes.c_uint8 * self.data_size).from_address(self.data_ptr)
         np_array = np.frombuffer(buf, dtype=np.uint8, count=self.data_size)
         if self.codec == 0:  # YUYV
@@ -324,6 +350,7 @@ class DepthImageDataRef(ctypes.Structure):
         """零拷贝深度帧解码"""
         if self.data_size == 0 or not self.data_ptr:
             return None
+        cv2 = _get_cv2()
         buf = (ctypes.c_uint8 * self.data_size).from_address(self.data_ptr)
         np_array = np.frombuffer(buf, dtype=np.uint8, count=self.data_size)
         if self.type == 0:  # Depth_16
@@ -362,6 +389,7 @@ class GrayScaleImageRef(ctypes.Structure):
     def frame(self, rotate=None):
         if not self.data_ptr or self.width <= 0:
             return None
+        cv2 = _get_cv2()
         buf = (ctypes.c_uint8 * (self.width * self.height)).from_address(self.data_ptr)
         gray = np.frombuffer(buf, dtype=np.uint8, count=self.width * self.height).reshape((self.height, self.width))
         return _apply_rotate(cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR), rotate)
@@ -384,6 +412,7 @@ class FisheyeImagesDataRef(ctypes.Structure):
         return self._four_in_one(self.image_count, rotate)
 
     def _four_in_one(self, count, rotate=None):
+        cv2 = _get_cv2()
         frames = []
         for i in range(count):
             f = self.images[i].frame()
@@ -447,6 +476,16 @@ class EventData(ctypes.Structure):
     ]
 
 
+class OrientationData(ctypes.Structure):
+    """6-DOF 方向数据：四元数 + 3x3 旋转矩阵"""
+    _fields_ = [
+        ("quaternion", Vector4D),
+        ("rotation", ctypes.c_double * 9),
+        ("hostTimestamp", ctypes.c_double),
+        ("edgeTimestampUs", ctypes.c_longlong),
+    ]
+
+
 class XVLib:
     _xvlib = None
     _load_lock = threading.Lock()
@@ -463,6 +502,7 @@ class XVLib:
         self._slam_data = PoseData()
         self._external_stream_data = PoseData()
         self._spheretrack_stream_data = PoseData()
+        self._orientation_data = OrientationData()
 
         # 零拷贝 Ref 数据 holder
         self._color_image_data_ref = ColorImageDataRef()
@@ -499,8 +539,15 @@ class XVLib:
     @classmethod
     def _check_xvsdk(cls):
         """检查系统是否安装了 XVSDK, 没有则抛异常并提示安装命令."""
-        if ctypes.util.find_library("xvsdk") and os.path.exists('/usr/lib/libxvsdk.so'):
-            return
+        if ctypes.util.find_library("xvsdk"):
+            candidate_paths = [
+                '/usr/lib/libxvsdk.so',
+                '/usr/lib/x86_64-linux-gnu/libxvsdk.so',
+                '/usr/lib/aarch64-linux-gnu/libxvsdk.so',
+                '/usr/local/lib/libxvsdk.so',
+            ]
+            if any(os.path.exists(p) for p in candidate_paths):
+                return
         raise RuntimeError(
             "XVSDK not found. Run:\n"
             f"  curl -sL {cls._DEB_URL} -o /tmp/xvsdk.deb && sudo dpkg -i /tmp/xvsdk.deb\n"
@@ -664,6 +711,12 @@ class XVLib:
                      'xv_get_fisheye_cameras_data_ref', 'xv_get_eyetracking_camera_data_ref']:
             lib[name].restype = ctypes.c_int
 
+        # orientation stream data getter
+        lib.xv_get_orientation_stream_data.restype = ctypes.c_int
+        # metadata getters
+        lib.xv_get_color_image_metadata.restype = ctypes.c_int
+        lib.xv_get_fisheye_metadata.restype = ctypes.c_int
+
     @classmethod
     def xv_get_devices(cls, timeout=5.0, max_devices=16, double_query=True):
         """Scan for connected XV devices.
@@ -688,15 +741,26 @@ class XVLib:
             ctypes.c_double(timeout)
         )
         if double_query:
-            # 多设备场景下第1次扫描可能遗漏设备，第2次补扫
+            # 多设备场景下第1次扫描可能遗漏设备，第2次补扫（用独立 buffer 避免覆盖）
             if timeout > 3 and device_count.value != 0:
                 time.sleep(1)
+            second_devices = (DeviceStruct * max_devices)()
+            second_count = ctypes.c_int(0)
             cls._xvlib.xv_get_devices(
-                ctypes.byref(devices),
-                ctypes.byref(device_count),
+                ctypes.byref(second_devices),
+                ctypes.byref(second_count),
                 ctypes.c_int(max_devices),
                 ctypes.c_double(2.0)
             )
+            # 合并：将第2次扫描中不在第1次结果里的设备追加进去
+            first_sns = set()
+            for i in range(device_count.value):
+                first_sns.add(devices[i].serial)
+            for i in range(second_count.value):
+                sn = second_devices[i].serial
+                if sn not in first_sns and device_count.value < max_devices:
+                    devices[device_count.value] = second_devices[i]
+                    device_count.value += 1
         return device_count.value, list(devices[:device_count.value])
 
     def xv_init(self, serial_number, init_slam, init_clamp_stream, init_color_camera, init_fisheye_cameras):
@@ -993,6 +1057,27 @@ class XVLib:
         """Get the most recently received spheretrack pose (updated by callback). Returns (ret_code, PoseData)."""
         ret = self._xvlib.xv_get_spheretrack_stream_data(self.instance_id, ctypes.byref(self._spheretrack_stream_data))
         return ret, self._spheretrack_stream_data
+
+    def xv_get_orientation_stream_data(self):
+        """Get the most recently received 6-DOF orientation data (quaternion + 3x3 rotation matrix).
+        Returns (ret_code, OrientationData)."""
+        ret = self._xvlib.xv_get_orientation_stream_data(self.instance_id, ctypes.byref(self._orientation_data))
+        return ret, self._orientation_data
+
+    def xv_get_color_image_metadata(self):
+        """Get color camera image width & height (updated by callback). Returns (ret_code, width, height)."""
+        width = ctypes.c_int(0)
+        height = ctypes.c_int(0)
+        ret = self._xvlib.xv_get_color_image_metadata(self.instance_id, ctypes.byref(width), ctypes.byref(height))
+        return ret, width.value, height.value
+
+    def xv_get_fisheye_metadata(self):
+        """Get fisheye cameras image width & height arrays (updated by callback).
+        Returns (ret_code, widths[4], heights[4])."""
+        widths = (ctypes.c_int * 4)(0, 0, 0, 0)
+        heights = (ctypes.c_int * 4)(0, 0, 0, 0)
+        ret = self._xvlib.xv_get_fisheye_metadata(self.instance_id, widths, heights)
+        return ret, list(widths), list(heights)
 
     # ============== Zero-copy Ref getters (internal, called by xv_get_*_data(use_ref=True)) ==============
 

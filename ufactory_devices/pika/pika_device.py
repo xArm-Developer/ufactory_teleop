@@ -1,8 +1,5 @@
 import time
 import logging
-import threading
-import serial
-from serial.tools import list_ports
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -15,6 +12,7 @@ def get_serial_ports(vidpid='1a86:7522'):
     vidpid: 指定设备的VID:PID字符串, 默认值为'1a86:7522'
     返回找到的所有符合的串口号列表
     """
+    from serial.tools import list_ports
     ports = list_ports.comports()
     pika_ports = []
     for port in ports:
@@ -34,6 +32,7 @@ def check_pika_device(port):
         1: Pika Sense设备
         2: Pika Gripper设备
     """
+    import serial
     try:
         ser = serial.Serial(
             port=port,
@@ -73,6 +72,7 @@ class PikaDevice(object):
     # _pika_sense_port = None
     # _pika_gripper_port = None
     # _lock = threading.Lock()
+    PIKA_DEVICE_MAP = {}
 
     def __init__(self, dev_type=1, **kwargs):
         """
@@ -145,6 +145,9 @@ class PikaDevice(object):
         if self._dev_type not in [1, 3]:
             return None
         if self._pika_sense is None:
+            if self._pika_sense_port in self.PIKA_DEVICE_MAP:
+                self._pika_sense = self.PIKA_DEVICE_MAP[self._pika_sense_port]
+                return self._pika_sense
             from pika.sense import Sense
             # 初始化Sense对象
             self._pika_sense = Sense(port=self._pika_sense_port)
@@ -153,6 +156,7 @@ class PikaDevice(object):
                 logger.error('连接Pika Sense设备失败')
                 exit(1)
             logger.info('Pika Sense设备连接成功')
+            self.PIKA_DEVICE_MAP[self._pika_sense_port] = self._pika_sense  # 注册共享
 
             # 配置Vive Tracker（可选）
             # sense.set_vive_tracker_config(config_path='path/to/config', lh_config='lighthouse_config')
@@ -187,16 +191,19 @@ class PikaDevice(object):
         if self._dev_type not in [2, 3]:
             return None
         if self._pika_gripper is None:
-            if self._dev_type in [2, 3]:
-                from pika.gripper import Gripper
-                self._pika_gripper = Gripper(port=self._pika_gripper_port)
-                # 连接设备
-                if not self._pika_gripper.connect():
-                    logger.error('连接Pika Gripper设备失败')
-                    if self._dev_type in [1, 3]:
-                        self.pika_sense.disconnect()
-                    exit(1)
-                logger.info('Pika Gripper设备连接成功')
+            if self._pika_gripper_port in self.PIKA_DEVICE_MAP:
+                self._pika_gripper = self.PIKA_DEVICE_MAP[self._pika_gripper_port]
+                return self._pika_gripper
+            from pika.gripper import Gripper
+            self._pika_gripper = Gripper(port=self._pika_gripper_port)
+            self.PIKA_DEVICE_MAP[self._pika_gripper_port] = self._pika_gripper  # 注册共享
+            # 连接设备
+            if not self._pika_gripper.connect():
+                logger.error('连接Pika Gripper设备失败')
+                if self._dev_type in [1, 3]:
+                    self.pika_sense.disconnect()
+                exit(1)
+            logger.info('Pika Gripper设备连接成功')
         return self._pika_gripper
 
 
