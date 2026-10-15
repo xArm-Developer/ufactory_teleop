@@ -63,7 +63,12 @@ Install Python dependencies:
 
 ```bash
 pip install -r requirements.txt
-pip install pysurvive agx-pypika --no-deps
+```
+
+`agx-pypika` is only needed when a Pika Gripper is used on the robot side (`gripper_type: 10`):
+
+```bash
+pip install agx-pypika --no-deps
 ```
 
 After installation, verify the following imports work:

@@ -63,7 +63,12 @@ conda activate py39
 
 ```bash
 pip install -r requirements.txt
-pip install pysurvive agx-pypika --no-deps
+```
+
+仅当机器人侧使用 Pika Gripper（`gripper_type: 10`）时，才需要额外安装 `agx-pypika`：
+
+```bash
+pip install agx-pypika --no-deps
 ```
 
 安装后需要保证以下导入可以成功：
@@ -115,7 +120,7 @@ TeleoperatorConfig:
 | `robot_mode` | 机器人运动模式。Gello 入口脚本必须使用 `6`，表示关节控制模式。 |
 | `robot_speed` | 关节速度，单位为 deg/s。 |
 | `robot_acc` | 关节加速度，单位为 deg/s^2。 |
-| `gripper_type` | 机器人侧夹爪类型。`0` 无夹爪，`1` xArm Gripper，`2` xArm Gripper G2，`10` Pika Gripper，`11` Robotiq Gripper。 |
+| `gripper_type` | 机器人侧夹爪类型。`0` 无夹爪，`1` xArm Gripper，`2` xArm Gripper G2，`3` BIO Gripper G2，`10` Pika Gripper，`11` Robotiq Gripper。 |
 | `gripper_port` | Pika Gripper 串口，仅 `gripper_type: 10` 时使用。 |
 | `gripper_speed` | 夹爪速度，`-1` 表示使用默认值。 |
 | `gripper_force` | 夹爪力控参数，`-1` 表示使用默认值。 |

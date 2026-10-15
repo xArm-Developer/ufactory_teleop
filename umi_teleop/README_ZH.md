@@ -156,7 +156,7 @@ R:
 | `robot_mode` | 运动模式。`1` 为 servo 笛卡尔伺服模式，`7` 为笛卡尔在线轨迹规划模式，默认 `7`。 |
 | `robot_speed` | 机械臂运动速度，默认 `250`。 |
 | `robot_acc` | 机械臂运动加速度，默认 `1000`。 |
-| `gripper_type` | `0` 无夹爪，`1` xArm Gripper，`2` xArm Gripper G2，`10` Pika Gripper，`11` Robotiq Gripper。 |
+| `gripper_type` | `0` 无夹爪，`1` xArm Gripper，`2` xArm Gripper G2，`3` BIO Gripper G2，`10` Pika Gripper，`11` Robotiq Gripper。 |
 | `gripper_port` | Pika Gripper 串口，仅 `gripper_type: 10` 时使用，不指定则自动检测。 |
 | `gripper_speed` | 夹爪速度，`-1` 表示使用默认值。 |
 | `gripper_force` | 夹爪力控参数，`-1` 表示使用默认值。 |
