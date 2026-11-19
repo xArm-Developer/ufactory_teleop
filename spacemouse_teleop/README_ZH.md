@@ -33,7 +33,7 @@
 
 ```bash
 cd spacemouse_teleop
-pip install -r requirements.txt
+pip install -e "..[spacemouse]"
 ```
 
 Windows 下可选安装 `pywinusb` 后端：

@@ -57,8 +57,11 @@ sudo apt install -y --fix-broken
 Install Python dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install -e "..[umi]"
+# Vive Tracker / Pika Gripper SDK (skip GUI/camera-only dependencies):
 pip install pysurvive agx-pypika --no-deps
+# Optional full Vive/Pika SDK (pulls GUI/camera deps):
+# pip install -e "..[umi,vive]"
 ```
 
 ```bash

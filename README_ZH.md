@@ -1,6 +1,6 @@
 # UFACTORY 遥操作系统
 
-本项目为 UFACTORY（深圳市众为创造科技有限公司）机械臂提供遥操作解决方案，通过运动跟踪实现对机械臂的直观远程控制，降低高质量示教数据采集的门槛，服务于机器人学习和操作任务。适配 xArm 5/6/7、Lite 6、850，五套方案共用 [ufactory_devices/](ufactory_devices/README_ZH.md) 中的机械臂封装与设备驱动。
+本项目为 UFACTORY（深圳市众为创造科技有限公司）机械臂提供遥操作解决方案，通过运动跟踪实现对机械臂的直观远程控制，降低高质量示教数据采集的门槛，服务于机器人学习和操作任务。适配 xArm 5/6/7、Lite 6、850，五套方案共用可安装的核心库 `uf_teleop_core`（[src/uf_teleop_core](src/uf_teleop_core/README_ZH.md)）。
 
 [English](README.md) | [Pika](#1-pika-sense-遥操作) | [UMI](#2-umi-遥操作) | [Gello](#3-gello-遥操作) | [Xbox](#4-xbox-手柄遥操作) | [SpaceMouse](#5-spacemouse-遥操作)
 
@@ -35,13 +35,18 @@ cd ufactory_teleop
 - **运动模式**：伺服笛卡尔模式（模式 1）与在线轨迹规划模式（模式 7）
 
 ```bash
-cd pika_teleop
+# 以下命令在仓库根目录执行
 conda create --name py39 python=3.9
 conda activate py39
-pip install -r requirements.txt
+pip install -e ".[pika]"
+# Pika SDK（跳过其 GUI/相机专用依赖）：
 pip install pysurvive agx-pypika --no-deps
-sudo cp rules/*.rules /etc/udev/rules.d/
+# 可选完整 Pika/Vive SDK（会拉取 GUI/相机依赖）：
+# pip install -e ".[pika,vive]"
+sudo cp pika_teleop/rules/*.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
+
+cd pika_teleop
 python uf_robot_pika_teleop.py --config config/xarm6_pika_teleop.yaml
 ```
 
@@ -62,15 +67,20 @@ python uf_robot_pika_teleop.py --config config/xarm6_pika_teleop.yaml
 单臂：
 
 ```bash
-cd umi_teleop
+# 以下命令在仓库根目录执行
 conda create --name py39 python=3.9
 conda activate py39
-sudo dpkg -i xvsdk/XVSDK_focal_amd64.deb
+sudo dpkg -i umi_teleop/xvsdk/XVSDK_focal_amd64.deb
 sudo apt install -y --fix-broken
-pip install -r requirements.txt
+pip install -e ".[umi]"
+# Vive Tracker / Pika Gripper SDK（跳过其 GUI/相机专用依赖）：
 pip install pysurvive agx-pypika --no-deps
-sudo cp rules/*.rules /etc/udev/rules.d/
+# 可选完整 Vive/Pika SDK（会拉取 GUI/相机依赖）：
+# pip install -e ".[umi,vive]"
+sudo cp umi_teleop/rules/*.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
+
+cd umi_teleop
 python uf_robot_umi_teleop.py --config config/xarm6_umi_teleop.yaml
 ```
 
@@ -96,12 +106,13 @@ python uf_robot_umi_teleop_dual.py --config config/xarm6_umi_teleop_dual.yaml
 - **夹爪支持**：可选 Gello 侧 Dynamixel 夹爪，支持 xArm Gripper (G1/G2)、BIO Gripper G2、Pika Gripper、Robotiq Gripper
 
 ```bash
-cd gello_teleop
+# 以下命令在仓库根目录执行
 conda create --name py39 python=3.9
 conda activate py39
-pip install -r requirements.txt
+pip install -e ".[gello]"
 sudo usermod -aG dialout $USER
 # 重新登录后运行
+cd gello_teleop
 python uf_robot_gello_teleop.py --config config/xarm7_gello_teleop.yaml
 ```
 
@@ -119,8 +130,10 @@ python uf_robot_gello_teleop.py --config config/xarm7_gello_teleop.yaml
 - **快捷操作**：长按 `START` 调平工具姿态，长按 `SELECT` 让机械臂回到 Home 位置；短按 `START` 可反转 Z 轴/Yaw 的方向
 
 ```bash
+# 以下命令在仓库根目录执行
+pip install -e ".[xbox]"
+
 cd xbox_teleop
-pip install -r requirements.txt
 # 根据机械臂修改 config/xarm6_xbox_teleop.yaml
 python uf_robot_xbox_teleop.py --config config/xarm6_xbox_teleop.yaml
 ```
@@ -138,13 +151,44 @@ python uf_robot_xbox_teleop.py --config config/xarm6_xbox_teleop.yaml
 - **HID 后端**：Linux 和 macOS 使用 HIDAPI。Windows 优先使用已安装的 `pywinusb`，否则回退到 HIDAPI；也可通过 `SPACEMOUSE_BACKEND` 指定 Windows 后端
 
 ```bash
+# 以下命令在仓库根目录执行
+pip install -e ".[spacemouse]"
+
 cd spacemouse_teleop
-pip install -r requirements.txt
 # 根据机械臂修改 config/xarm6_spacemouse_teleop.yaml
 python uf_robot_spacemouse_teleop.py --config config/xarm6_spacemouse_teleop.yaml
 ```
 
 按键说明与配置参数见 [spacemouse_teleop/README_ZH.md](spacemouse_teleop/README_ZH.md)。
+
+## 设备独立使用与数据采集
+
+遥操作设备（`TeleopDevice`）与机器人设备（`RobotDevice`）可各自独立使用，入口脚本只负责组合二者。先执行 `pip install -e .` 安装核心库，完整接口见 [src/uf_teleop_core/README_ZH.md](src/uf_teleop_core/README_ZH.md)。
+
+```python
+from uf_teleop_core.teleop import PikaTeleopDevice
+
+with PikaTeleopDevice(use_gripper=True) as device:
+    data = device.get_data()
+    if data is not None and data.valid:
+        print(data.position, data.quaternion, data.gripper, data.buttons)
+```
+
+独立采集遥操作数据（每帧一行 JSON）：
+
+```bash
+# 仅采集 teleop 设备
+python data_collection/collect_data.py --teleop-type pika \
+    -c pika_teleop/config/xarm6_pika_teleop.yaml -o data/pika_ep001.jsonl
+
+# 同时记录机械臂状态（初始化会移动机械臂到 start_joints，采集中不发送动作）
+python data_collection/collect_data.py --teleop-type umi \
+    -c umi_teleop/config/xarm6_umi_teleop.yaml -o data/umi_ep001.jsonl --with-robot
+```
+
+支持 `--teleop-type pika|umi|gello|xbox|spacemouse`；`Ctrl+C` 结束采集。`--with-robot` 会按同一 YAML 的 `RobotConfig` 连接机械臂。
+
+使用 Pika 或 UMI 设备采集时，还需按对应方案快速开始中的说明安装设备 SDK（`pip install pysurvive agx-pypika --no-deps`）。
 
 ## 参考资料
 

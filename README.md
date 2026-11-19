@@ -2,7 +2,7 @@
 
 This project provides teleoperation solutions for UFACTORY (深圳市众为创造科技有限公司) robotic arms, enabling intuitive remote control through motion tracking technologies.   
 
-It is designed to lower the barrier to collecting high-quality demonstration data for robotic learning and manipulation tasks, and supports a range of arm models including xArm 5/6/7, Lite 6, and 850. All five solutions share the robot wrapper and device drivers in [ufactory_devices](ufactory_devices/README.md).
+It is designed to lower the barrier to collecting high-quality demonstration data for robotic learning and manipulation tasks, and supports a range of arm models including xArm 5/6/7, Lite 6, and 850. All five solutions share the installable core library `uf_teleop_core` in [src/uf_teleop_core](src/uf_teleop_core/README.md).
 
 [中文](README_ZH.md) | [Pika](#1-pika-sense-teleoperation) | [UMI](#2-umi-teleoperation) | [Gello](#3-gello-teleoperation) | [Xbox](#4-xbox-controller-teleoperation) | [SpaceMouse](#5-spacemouse-teleoperation)
 
@@ -37,13 +37,18 @@ Uses Agilex Robotics' Pika Sense — a handheld clamp controller with integrated
 - **Motion Modes**: Servo Cartesian (mode 1) and online trajectory planning (mode 7)
 
 ```bash
-cd pika_teleop
+# from the repository root
 conda create --name py39 python=3.9
 conda activate py39
-pip install -r requirements.txt
+pip install -e ".[pika]"
+# Pika SDK (skip its GUI/camera-only dependencies):
 pip install pysurvive agx-pypika --no-deps
-sudo cp rules/*.rules /etc/udev/rules.d/
+# Optional full Pika/Vive SDK (pulls GUI/camera deps):
+# pip install -e ".[pika,vive]"
+sudo cp pika_teleop/rules/*.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
+
+cd pika_teleop
 python uf_robot_pika_teleop.py --config config/xarm6_pika_teleop.yaml
 ```
 
@@ -64,15 +69,20 @@ Uses FastUMI devices for intuitive teleoperation, with support for both single-a
 Single arm:
 
 ```bash
-cd umi_teleop
+# from the repository root
 conda create --name py39 python=3.9
 conda activate py39
-sudo dpkg -i xvsdk/XVSDK_focal_amd64.deb
+sudo dpkg -i umi_teleop/xvsdk/XVSDK_focal_amd64.deb
 sudo apt install -y --fix-broken
-pip install -r requirements.txt
+pip install -e ".[umi]"
+# Vive Tracker / Pika Gripper SDK (skip GUI/camera-only dependencies):
 pip install pysurvive agx-pypika --no-deps
-sudo cp rules/*.rules /etc/udev/rules.d/
+# Optional full Vive/Pika SDK (pulls GUI/camera deps):
+# pip install -e ".[umi,vive]"
+sudo cp umi_teleop/rules/*.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
+
+cd umi_teleop
 python uf_robot_umi_teleop.py --config config/xarm6_umi_teleop.yaml
 ```
 
@@ -98,12 +108,13 @@ A joint-space teleoperation system using the Gello leader arm (Dynamixel servo-b
 - **Gripper Support**: Optional Gello-side Dynamixel gripper, supports xArm Gripper (G1/G2), BIO Gripper G2, Pika Gripper, Robotiq Gripper
 
 ```bash
-cd gello_teleop
+# from the repository root
 conda create --name py39 python=3.9
 conda activate py39
-pip install -r requirements.txt
+pip install -e ".[gello]"
 sudo usermod -aG dialout $USER
-# Re-login then run
+# Re-login, then run
+cd gello_teleop
 python uf_robot_gello_teleop.py --config config/xarm7_gello_teleop.yaml
 ```
 
@@ -121,8 +132,10 @@ Use an Xbox-compatible gamepad for six-axis Cartesian end-effector control. The 
 - **Quick actions**: Hold `START` to level the tool or hold `SELECT` to return the robot to its home position; a short `START` press reverses the Z/Yaw direction
 
 ```bash
+# from the repository root
+pip install -e ".[xbox]"
+
 cd xbox_teleop
-pip install -r requirements.txt
 # Edit config/xarm6_xbox_teleop.yaml for your robot
 python uf_robot_xbox_teleop.py --config config/xarm6_xbox_teleop.yaml
 ```
@@ -140,13 +153,44 @@ Use a supported 3Dconnexion SpaceMouse as a six-degree-of-freedom input device f
 - **HID backend**: Uses HIDAPI on Linux and macOS. On Windows, `pywinusb` is preferred when installed, with HIDAPI as a fallback; `SPACEMOUSE_BACKEND` can select the Windows backend
 
 ```bash
+# from the repository root
+pip install -e ".[spacemouse]"
+
 cd spacemouse_teleop
-pip install -r requirements.txt
 # Edit config/xarm6_spacemouse_teleop.yaml for your robot
 python uf_robot_spacemouse_teleop.py --config config/xarm6_spacemouse_teleop.yaml
 ```
 
 See [spacemouse_teleop/README.md](spacemouse_teleop/README.md) for button mappings and configuration parameters.
+
+## Standalone Device Usage & Data Collection
+
+Teleop devices (`TeleopDevice`) and robot devices (`RobotDevice`) can be used independently; entry scripts only compose them. Install the core library first with `pip install -e .`, then see [src/uf_teleop_core/README.md](src/uf_teleop_core/README.md) for the full interface.
+
+```python
+from uf_teleop_core.teleop import PikaTeleopDevice
+
+with PikaTeleopDevice(use_gripper=True) as device:
+    data = device.get_data()
+    if data is not None and data.valid:
+        print(data.position, data.quaternion, data.gripper, data.buttons)
+```
+
+Collect teleop data standalone (one JSON line per frame):
+
+```bash
+# Teleop device only
+python data_collection/collect_data.py --teleop-type pika \
+    -c pika_teleop/config/xarm6_pika_teleop.yaml -o data/pika_ep001.jsonl
+
+# Also record robot state (initialization moves the arm to start_joints; no actions are sent)
+python data_collection/collect_data.py --teleop-type umi \
+    -c umi_teleop/config/xarm6_umi_teleop.yaml -o data/umi_ep001.jsonl --with-robot
+```
+
+`--teleop-type` accepts `pika|umi|gello|xbox|spacemouse`; press `Ctrl+C` to stop. With `--with-robot`, the robot is connected from the same YAML's `RobotConfig`.
+
+For Pika or UMI devices, also install the device SDKs as shown in the solution quick starts (`pip install pysurvive agx-pypika --no-deps`).
 
 ## References
 

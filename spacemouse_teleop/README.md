@@ -33,7 +33,7 @@ From the repository root:
 
 ```bash
 cd spacemouse_teleop
-pip install -r requirements.txt
+pip install -e "..[spacemouse]"
 ```
 
 On Windows, optionally install `pywinusb` to use that backend:

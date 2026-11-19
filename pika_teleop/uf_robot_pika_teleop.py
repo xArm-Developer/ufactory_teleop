@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import sys
 import time
 import yaml
 import logging
@@ -12,10 +10,8 @@ from pathlib import Path
 from typing import Tuple
 from dataclasses import dataclass
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from ufactory_devices.pika import PikaDevice
-from ufactory_devices.robot import UFRobotConfig, UFRobot
-from ufactory_devices.umi import Transformations
+from uf_teleop_core.teleop import PikaTeleopDevice, CartesianTeleopMapper
+from uf_teleop_core.robot import UFRobotConfig, UFRobot
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -34,40 +30,29 @@ class UFRobotTeleop(object):
     def __init__(self, config: PikaTeleopConfig, robot_config: UFRobotConfig):
         self.config = config
         self.robot = UFRobot(robot_config)
-        self.pika_device = PikaDevice(1, pika_sense_port=self.config.pika_sense_port)
-        self.pika_sense = self.pika_device.pika_sense
+        self.teleop = PikaTeleopDevice(
+            pika_sense_port=config.pika_sense_port,
+            vive_tracker_id=config.vive_tracker_id,
+            use_gripper=config.use_gripper,
+        )
+        self.teleop.connect()
+        self.mapper = CartesianTeleopMapper(config.tracker_to_robot_eef)
         self.status = 2
-    
+
     def set_status(self, status):
         self.status = status
 
     def run(self):
-        init_state = self.pika_sense.get_command_state()
+        init_state = self.teleop.get_command_state()
         curr_state = init_state
 
-        last_gripper_distance = 0
-
-        ctrl_flag = False # 是否开启遥操作
         need_initial = False
         sleep_time = 1 / self.config.fps
-
-        # pika坐标系到机械臂坐标系的变换关系对应的变换矩阵
-        pika_to_robot_matrix = Transformations.xyzrpy_to_rotation_matrix(*self.config.tracker_to_robot_eef)
-        # 机械臂初始位置对应的变换矩阵
-        robot_base_matrix = None
-        # pika初始位置转换到机械臂坐标系后对应的变换矩阵
-        pika_begin_robot_matrix = None
-        # pika目标位置转换到机械臂坐标系后对应的变换矩阵
-        pika_end_robot_matrix = None
-
-        gripper_norm = 0
-
-        vive_tracker_id = self.pika_device.pika_tracker_device if self.config.vive_tracker_id is None else self.config.vive_tracker_id
 
         while self.status > 0:
             time.sleep(sleep_time)
 
-            state = self.pika_sense.get_command_state()
+            state = self.teleop.get_command_state()
             if state != curr_state:
                 curr_state = state
                 if self.status != 1 and curr_state != init_state:
@@ -80,39 +65,28 @@ class UFRobotTeleop(object):
                     self.status = 2
                     logger.info('停止遥操作')
                     continue
-            
+
             if self.status != 1:
                 continue
 
-            pose = self.pika_sense.get_pose(vive_tracker_id)
-            if not pose:
+            data = self.teleop.get_data()
+            if data is None or not data.valid:
                 continue
-            x, y, z = pose.position[0] * 1000, pose.position[1] * 1000, pose.position[2] * 1000
 
             if need_initial:
                 need_initial = False
                 _, robot_pos = self.robot.get_position()
                 logger.info('[初始] 机械臂位置: {}'.format(robot_pos))
+                # 以当前遥操作位姿和机械臂位姿初始化映射
+                self.mapper.reset(data, robot_pos)
 
-                # 机械臂初始位置对应的变换矩阵
-                robot_base_matrix = Transformations.xyzrpy_to_rotation_matrix(*robot_pos)
+            robot_target_pose = self.mapper.map(data)
+            if robot_target_pose is None:
+                continue
 
-                # pika初始位置转换到机械臂坐标系后对应的变换矩阵
-                pika_begin_robot_matrix = Transformations.tracker_pose_to_robot_matrix(x, y, z, pose.rotation, pika_to_robot_matrix)
-                pika_end_robot_matrix = pika_begin_robot_matrix
-            else:
-                # pika目标位置转换到机械臂坐标系后对应的变换矩阵
-                pika_end_robot_matrix = Transformations.tracker_pose_to_robot_matrix(x, y, z, pose.rotation, pika_to_robot_matrix)
-
-            robot_target_pose = Transformations.tracker_robot_matrix_to_robot_pose(pika_begin_robot_matrix, pika_end_robot_matrix, robot_base_matrix, is_axis_angle=True)
-            action = robot_target_pose
-            if self.config.use_gripper:
-                distance  = self.pika_sense.get_gripper_distance()
-                if distance is not None:
-                    if abs(last_gripper_distance - distance) > 2:
-                        last_gripper_distance = distance
-                        gripper_norm = (100 - distance) / (100 - 0)
-                    action.append(gripper_norm)
+            action = list(robot_target_pose)
+            if self.config.use_gripper and data.gripper is not None:
+                action.append(data.gripper)
             code = self.robot.send_action(action)
             if code != 0:
                 break
@@ -120,7 +94,7 @@ class UFRobotTeleop(object):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='configuration args')
-    parser.add_argument('-c', '--config', type=str, required=True, 
+    parser.add_argument('-c', '--config', type=str, required=True,
                        help='configuration file path, e.g.my_config.yaml')
     args = parser.parse_args()
     try:
@@ -129,7 +103,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Error loading config yaml file: {e}")
         exit(1)
-    
+
     robot_confg = UFRobotConfig(**config['RobotConfig'])
     teleop_confg = PikaTeleopConfig(**config['TeleoperatorConfig'])
     teleop = UFRobotTeleop(teleop_confg, robot_confg)

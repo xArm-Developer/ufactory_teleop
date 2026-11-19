@@ -1,4 +1,7 @@
+# Recommended: pip install -e "..[pika]"
+# Then install the Pika SDK without its GUI/camera dependencies:
+#   pip install pysurvive agx-pypika --no-deps
 numpy
 pyyaml
 pyserial
-git+https://github.com/xArm-Developer/xArm-Python-SDK.git@master
+xarm-python-sdk

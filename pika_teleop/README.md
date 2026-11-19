@@ -16,9 +16,9 @@ The entry script reads the pose of the Vive Tracker exposed through Pika Sense, 
 Main components:
 
 - `pika_teleop/uf_robot_pika_teleop.py`: Pika Sense teleoperation entry script.
-- `ufactory_devices/pika/pika_device.py`: Pika Sense and Pika Gripper serial detection and connection helper.
-- `ufactory_devices/robot/uf_robot.py`: xArm connection, initialization, motion, and gripper control wrapper.
-- `ufactory_devices/transformations.py`: pose, quaternion, RPY, axis-angle, and relative-motion transforms.
+- `src/uf_teleop_core/devices/pika/pika_device.py`: Pika Sense and Pika Gripper serial detection and connection helper.
+- `src/uf_teleop_core/robot/uf_robot.py`: xArm connection, initialization, motion, and gripper control wrapper.
+- `src/uf_teleop_core/transformations.py`: pose, quaternion, RPY, axis-angle, and relative-motion transforms.
 
 The script supports:
 
@@ -58,8 +58,11 @@ conda activate py39
 Install Python dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install -e "..[pika]"
+# Pika SDK (skip its GUI/camera-only dependencies):
 pip install pysurvive agx-pypika --no-deps
+# Optional full Pika/Vive SDK (pulls GUI/camera deps):
+# pip install -e "..[pika,vive]"
 ```
 
 After installation, verify the following imports work:

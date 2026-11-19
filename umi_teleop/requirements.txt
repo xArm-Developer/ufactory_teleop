@@ -1,5 +1,7 @@
+# Recommended: pip install -e "..[umi]"
+# Optional Vive Tracker support: pip install pysurvive --no-deps
+# System dependency: XVSDK deb (see README)
 numpy
 pyyaml
-pyserial
 opencv-python
-git+https://github.com/xArm-Developer/xArm-Python-SDK.git@master
+xarm-python-sdk

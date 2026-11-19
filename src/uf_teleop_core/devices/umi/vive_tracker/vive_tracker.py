@@ -3,7 +3,7 @@ import ctypes
 import logging
 import threading
 import numpy as np
-from .transformations import Transformations
+from uf_teleop_core.transformations import Transformations
 
 logger = logging.getLogger('uf.vive_tracker')
 

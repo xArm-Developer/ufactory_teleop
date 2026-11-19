@@ -14,7 +14,7 @@ Main components:
 
 - `gello_teleop/uf_robot_gello_teleop.py`: Gello teleoperation entry script.
 - `gello_teleop/config/*.yaml`: example configurations for xArm5, xArm6, and xArm7.
-- `ufactory_devices/robot/uf_robot.py`: xArm connection, initialization, joint motion, and gripper control wrapper.
+- `src/uf_teleop_core/robot/uf_robot.py`: xArm connection, initialization, joint motion, and gripper control wrapper.
 
 Supported features:
 
@@ -45,7 +45,7 @@ Before running, make sure:
 
 ## 3. Installation
 
-Clone the project and enter the Gello teleoperation directory:
+Clone the repository and enter the Gello teleoperation folder:
 
 ```bash
 git clone https://github.com/xArm-Developer/ufactory_teleop
@@ -62,8 +62,12 @@ conda activate py39
 Install Python dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install -e "..[gello]"
 ```
+
+The `gello` extra installs `gello` from a pinned GitHub archive and `dynamixel-sdk` from PyPI. It intentionally avoids a `git+` URL: pip's VCS install runs `git submodule update --recursive`, which would fetch gello's unused `third_party/mujoco_menagerie` and `third_party/DynamixelSDK` submodules.
+
+On Windows, set `PYTHONUTF8=1` before installing: gello's `setup.py` reads `README.md` with the default locale encoding.
 
 `agx-pypika` is only needed when a Pika Gripper is used on the robot side (`gripper_type: 10`):
 

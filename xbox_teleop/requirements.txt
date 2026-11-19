@@ -1,3 +1,4 @@
+# Recommended (from the repo root): pip install -e "..[xbox]"
 inputs
 evdev; sys_platform != 'win32'
 pyyaml

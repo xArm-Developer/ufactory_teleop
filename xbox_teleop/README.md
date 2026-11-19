@@ -15,7 +15,7 @@ From the repository root:
 
 ```bash
 cd xbox_teleop
-pip install -r requirements.txt
+pip install -e "..[xbox]"
 ```
 
 Edit `config/xarm6_xbox_teleop.yaml` for the target robot, then launch:

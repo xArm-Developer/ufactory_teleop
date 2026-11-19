@@ -14,7 +14,7 @@ GitHub: https://github.com/xArm-Developer/ufactory_teleop
 
 - `gello_teleop/uf_robot_gello_teleop.py`：Gello 遥操作入口脚本。
 - `gello_teleop/config/*.yaml`：xArm5、xArm6、xArm7 示例配置文件。
-- `ufactory_devices/robot/uf_robot.py`：xArm 连接、初始化、关节运动和夹爪控制封装。
+- `src/uf_teleop_core/robot/uf_robot.py`：xArm 连接、初始化、关节运动和夹爪控制封装。
 
 支持能力：
 
@@ -62,8 +62,12 @@ conda activate py39
 安装 Python 依赖：
 
 ```bash
-pip install -r requirements.txt
+pip install -e "..[gello]"
 ```
+
+`gello` extra 从固定 commit 的 GitHub archive 安装 `gello`，并从 PyPI 安装 `dynamixel-sdk`。这里有意不使用 `git+` 地址：pip 在 VCS 安装时会执行 `git submodule update --recursive`，从而拉取 gello 中当前用不到的 `third_party/mujoco_menagerie` 和 `third_party/DynamixelSDK` 子模块。
+
+Windows 下安装前请设置 `PYTHONUTF8=1`：gello 的 `setup.py` 会用系统默认编码读取 `README.md`。
 
 仅当机器人侧使用 Pika Gripper（`gripper_type: 10`）时，才需要额外安装 `agx-pypika`：
 

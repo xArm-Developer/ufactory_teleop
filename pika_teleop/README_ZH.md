@@ -18,9 +18,9 @@ GitHub: https://github.com/xArm-Developer/ufactory_teleop
 主要组件：
 
 - `pika_teleop/uf_robot_pika_teleop.py`：Pika Sense 遥操作入口脚本。
-- `ufactory_devices/pika/pika_device.py`：Pika Sense 和 Pika Gripper 串口自动识别与连接。
-- `ufactory_devices/robot/uf_robot.py`：xArm 连接、初始化、运动和夹爪控制封装。
-- `ufactory_devices/transformations.py`：位姿、四元数、RPY、轴角和相对运动转换。
+- `src/uf_teleop_core/devices/pika/pika_device.py`：Pika Sense 和 Pika Gripper 串口自动识别与连接。
+- `src/uf_teleop_core/robot/uf_robot.py`：xArm 连接、初始化、运动和夹爪控制封装。
+- `src/uf_teleop_core/transformations.py`：位姿、四元数、RPY、轴角和相对运动转换。
 
 支持能力：
 
@@ -60,8 +60,11 @@ conda activate py39
 安装 Python 依赖：
 
 ```bash
-pip install -r requirements.txt
+pip install -e "..[pika]"
+# Pika SDK（跳过其 GUI/相机专用依赖）：
 pip install pysurvive agx-pypika --no-deps
+# 可选完整 Pika/Vive SDK（会拉取 GUI/相机依赖）：
+# pip install -e "..[pika,vive]"
 ```
 
 安装后需要保证以下导入可以成功：

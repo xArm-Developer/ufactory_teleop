@@ -1,5 +1,3 @@
-import os
-import sys
 import time
 import math
 import struct
@@ -9,8 +7,8 @@ import numpy as np
 from typing import Tuple
 from enum import IntEnum
 from xarm.wrapper import XArmAPI
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from ufactory_devices.pika import PikaDevice
+from uf_teleop_core.devices.pika import PikaDevice
+from .base import RobotActionSpace, RobotDevice, RobotState
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -61,7 +59,7 @@ class UFRobotConfig:
     start_tcp_pose: Tuple[float, ...] = None # xyzrpy
 
 
-class UFRobot(object):
+class UFRobot(RobotDevice):
     def __init__(self, config: UFRobotConfig):
         self.config = config
 
@@ -106,6 +104,8 @@ class UFRobot(object):
         self.connect()
     
     def connect(self):
+        if self.connected:
+            return
         self.real_arm = XArmAPI(self.config.robot_ip)
 
         time.sleep(0.2)
@@ -193,6 +193,55 @@ class UFRobot(object):
             code, pos = self.real_arm.get_position(is_radian=True)
         return code, pos
 
+    @property
+    def connected(self):
+        return getattr(self, 'real_arm', None) is not None and self.real_arm.connected
+
+    @property
+    def action_space(self):
+        if self.config.robot_mode == 6:
+            return RobotActionSpace.JOINT
+        return RobotActionSpace.CARTESIAN
+
+    def get_state(self):
+        """读取当前机器人状态: tcp 位姿 (xyzrpy, mm/rad)、关节角 (rad)、夹爪、错误码。"""
+        if getattr(self, 'real_arm', None) is None or not self.real_arm.connected:
+            raise ConnectionError()
+        code, tcp_pose = self.real_arm.get_position(is_radian=True)
+        joints_code, joints = self.real_arm.get_servo_angle(is_radian=True)
+        gripper_norm = None
+        if self._gripper_type > GripperType.NoGripper:
+            gripper_norm = float(self._gripper_param.gripper_norm)
+        return RobotState(
+            tcp_pose=np.asarray(tcp_pose, dtype=float) if code == 0 else None,
+            joints=np.asarray(joints, dtype=float) if joints_code == 0 else None,
+            gripper_norm=gripper_norm,
+            error_code=int(self.real_arm.error_code),
+        )
+
+    def close(self):
+        """断开机械臂与夹爪连接。"""
+        if self._gripper_type == GripperType.PikaGripper and getattr(self, 'pika_gripper', None) is not None:
+            try:
+                self.pika_gripper.disconnect()
+            except Exception as e:
+                logger.debug('Pika gripper disconnect error: %s', e)
+            pika_device = getattr(self, 'pika_device', None)
+            if pika_device is not None:
+                port = getattr(pika_device, '_pika_gripper_port', None)
+                if port is not None and PikaDevice.PIKA_DEVICE_MAP.get(port) is self.pika_gripper:
+                    PikaDevice.PIKA_DEVICE_MAP.pop(port, None)
+                # 避免 PikaDevice.__del__ 重复断开
+                pika_device._pika_gripper = None
+            self.pika_gripper = None
+        if getattr(self, 'real_arm', None) is not None:
+            try:
+                if self.real_arm.connected:
+                    self.real_arm.disconnect()
+            except Exception as e:
+                logger.debug('UF robot disconnect error: %s', e)
+        self._is_connected = False
+
     def send_action(self, action):
         if not self.real_arm.connected:
             raise ConnectionError()
@@ -229,6 +278,7 @@ class UFRobot(object):
             self._cmd_cnt += 1
 
         if self._gripper_type > GripperType.NoGripper and gripper_norm is not None:
+            self._gripper_param.gripper_norm = gripper_norm
             if self._gripper_type == GripperType.xArmGripper:
                 grippos = self._gripper_param.get_grippos(gripper_norm)
                 modbus_datas = [0x08, 0x10, 0x07, 0x00, 0x00, 0x02, 0x04]

@@ -1,3 +1,4 @@
+# Recommended (from the repo root): pip install -e "..[spacemouse]"
 hidapi
 pyyaml
 xarm-python-sdk

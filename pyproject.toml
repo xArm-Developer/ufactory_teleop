@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uf-teleop-core"
+version = "0.1.0"
+description = "UFACTORY teleoperation core: hardware drivers, teleop devices and robot control"
+readme = "src/uf_teleop_core/README.md"
+requires-python = ">=3.8"
+license = {text = "BSD-3-Clause"}
+dependencies = [
+    "numpy",
+    "PyYAML",
+]
+
+[project.optional-dependencies]
+robot = ["xarm-python-sdk"]
+# Every solution extra includes the robot dependency (xarm-python-sdk) because
+# the entry scripts instantiate UFRobot. pysurvive / agx-pypika are installed
+# separately with --no-deps: their metadata pulls GUI/camera-only dependencies
+# (gooey, wxpython, pyrealsense2) that the teleoperation path does not use.
+pika = ["xarm-python-sdk", "pyserial"]
+umi = ["xarm-python-sdk", "opencv-python"]
+gello = [
+    "xarm-python-sdk",
+    # Pinned GitHub archive instead of git+...: pip's VCS install runs
+    # `git submodule update --recursive`, which would fetch gello's unused
+    # third_party/mujoco_menagerie and third_party/DynamixelSDK submodules.
+    "gello @ https://github.com/xArm-Developer/gello_software/archive/523437fa4615155813124efeae26fdef32e546a0.tar.gz",
+    "dynamixel-sdk",
+]
+xbox = ["xarm-python-sdk", "inputs", "evdev; sys_platform != 'win32'"]
+spacemouse = ["xarm-python-sdk", "hidapi"]
+# Full SDK bundle: pysurvive (HTC Vive) + agx-pypika (Pika Sense/Gripper).
+# A normal install also pulls GUI/camera deps (gooey, wxpython, pyrealsense2);
+# the lightweight recommended path is `pip install pysurvive agx-pypika --no-deps`.
+vive = ["pysurvive", "agx-pypika"]
+dev = ["pytest"]
+all = ["uf-teleop-core[robot,pika,umi,gello,xbox,spacemouse]"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"uf_teleop_core.devices.umi.xvlib" = ["*.so", "*.so.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

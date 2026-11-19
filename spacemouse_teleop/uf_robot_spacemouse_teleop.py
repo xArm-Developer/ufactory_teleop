@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import sys
 import time
 import yaml
 import logging
@@ -12,9 +10,8 @@ from pathlib import Path
 from typing import Tuple
 from dataclasses import dataclass
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from ufactory_devices.robot import UFRobotConfig, UFRobot
-from ufactory_devices.spacemouse import SpaceDevice
+from uf_teleop_core.teleop import SpacemouseTeleopDevice
+from uf_teleop_core.robot import UFRobotConfig, UFRobot
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -35,10 +32,15 @@ class UFRobotTeleop(object):
     def __init__(self, config: SpaceMouseTeleopConfig, robot_config: UFRobotConfig):
         self.config = config
 
-        self._spacemouse = SpaceDevice(axes_deadzone=self.config.axes_deadzone, logger=logger)
-        self._spacemouse.start()
+        self.teleop = SpacemouseTeleopDevice(
+            axes_deadzone=config.axes_deadzone,
+            max_distances=config.max_distances,
+            direction=config.direction,
+        )
+        self.teleop.connect()
 
         self.robot = UFRobot(robot_config)
+        # 调平、回零、模式切换等底层操作仍通过机械臂 SDK 完成
         self.arm = self.robot.real_arm
 
         self._motion_type = 0
@@ -120,7 +122,7 @@ class UFRobotTeleop(object):
         while self.arm and self.arm.connected:
             time.sleep(0.01)
 
-            if not self._spacemouse.connected:
+            if not self.teleop.connected:
                 if not warning_logged:
                     logger.warning("SpaceMouse controller is not connected. Please check the connection.")
                     warning_logged = True
@@ -137,12 +139,14 @@ class UFRobotTeleop(object):
                 continue
             warning_logged = False
 
-            state = self._spacemouse.state
-            if len(state.buttons) < 2:
+            data = self.teleop.get_data()
+            if data is None:
                 continue
+            axes = data.axes
+            buttons = data.buttons
 
-            btn_left_pressed = state.buttons[0] == 1
-            btn_right_pressed = state.buttons[1] == 1
+            btn_left_pressed = buttons['LEFT'] == 1
+            btn_right_pressed = buttons['RIGHT'] == 1
 
             if btn_left_pressed: # left
                 left_cnt += 1
@@ -212,8 +216,8 @@ class UFRobotTeleop(object):
                     time.sleep(0.1)
                 continue
 
-            _xyz_is_zero = abs(state.x) <= zero and abs(state.y) <= zero and abs(state.z) <= zero
-            _rpy_is_zero = abs(state.roll) <= zero and abs(state.pitch) <= zero and abs(state.yaw) <= zero
+            _xyz_is_zero = abs(axes['x']) <= zero and abs(axes['y']) <= zero and abs(axes['z']) <= zero
+            _rpy_is_zero = abs(axes['roll']) <= zero and abs(axes['pitch']) <= zero and abs(axes['yaw']) <= zero
 
             if _xyz_is_zero and _rpy_is_zero:
                 if self._motion_type != 0:
@@ -228,48 +232,13 @@ class UFRobotTeleop(object):
                 self.cartesian_base_pose = pose
                 logger.info(f"[SpaceMouse] Cartesian motion started: {pose}")
             else:
-                x_zero = False
-                y_zero = False
-                z_zero = False
-                dx_zero = False
-                dy_zero = False
-                dz_zero = False
-
-                d = self.config.max_distances
-                if self.config.direction == 180:
-                    self.cartesian_pose_delta[0] = -state.y * d[0] if not x_zero else 0
-                    self.cartesian_pose_delta[1] = state.x * d[1] if not y_zero else 0
-                    self.cartesian_pose_delta[2] = state.z * d[2] if not z_zero else 0
-                    self.cartesian_pose_delta[3] = -state.roll * d[3] if not dx_zero else 0
-                    self.cartesian_pose_delta[4] = -state.pitch * d[4] if not dy_zero else 0
-                    self.cartesian_pose_delta[5] = -state.yaw * d[5] if not dz_zero else 0
-                elif self.config.direction == 90:
-                    self.cartesian_pose_delta[0] = -state.x * d[0] if not x_zero else 0
-                    self.cartesian_pose_delta[1] = -state.y * d[1] if not y_zero else 0
-                    self.cartesian_pose_delta[2] = state.z * d[2] if not z_zero else 0
-                    self.cartesian_pose_delta[3] = state.pitch * d[3] if not dx_zero else 0
-                    self.cartesian_pose_delta[4] = -state.roll * d[4] if not dy_zero else 0
-                    self.cartesian_pose_delta[5] = -state.yaw * d[5] if not dz_zero else 0
-                elif self.config.direction == 270:
-                    self.cartesian_pose_delta[0] = state.x * d[0] if not x_zero else 0
-                    self.cartesian_pose_delta[1] = state.y * d[1] if not y_zero else 0
-                    self.cartesian_pose_delta[2] = state.z * d[2] if not z_zero else 0
-                    self.cartesian_pose_delta[3] = -state.pitch * d[3] if not dx_zero else 0
-                    self.cartesian_pose_delta[4] = state.roll * d[4] if not dy_zero else 0
-                    self.cartesian_pose_delta[5] = -state.yaw * d[5] if not dz_zero else 0
-                else:
-                    self.cartesian_pose_delta[0] = state.y * d[0] if not x_zero else 0
-                    self.cartesian_pose_delta[1] = -state.x * d[1] if not y_zero else 0
-                    self.cartesian_pose_delta[2] = state.z * d[2] if not z_zero else 0
-                    self.cartesian_pose_delta[3] = state.roll * d[3] if not dx_zero else 0
-                    self.cartesian_pose_delta[4] = state.pitch * d[4] if not dy_zero else 0
-                    self.cartesian_pose_delta[5] = -state.yaw * d[5] if not dz_zero else 0
+                self.cartesian_pose_delta = list(data.delta)
         logger.info("[SpaceMouse] Teleoperation stopped.")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='configuration args')
-    parser.add_argument('-c', '--config', type=str, required=True, 
+    parser.add_argument('-c', '--config', type=str, required=True,
                        help='configuration file path, e.g.my_config.yaml')
     args = parser.parse_args()
     try:
@@ -278,7 +247,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Error loading config yaml file: {e}")
         exit(1)
-    
+
     robot_confg = UFRobotConfig(**config['RobotConfig'])
     teleop_confg = SpaceMouseTeleopConfig(**config['TeleoperatorConfig'])
     teleop = UFRobotTeleop(teleop_confg, robot_confg)

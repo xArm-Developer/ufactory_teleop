@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import sys
 import time
 import yaml
 import logging
@@ -12,9 +10,8 @@ from pathlib import Path
 from typing import Tuple
 from dataclasses import dataclass
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from ufactory_devices.robot import UFRobotConfig, UFRobot
-from ufactory_devices.xbox import XBoxDevice
+from uf_teleop_core.teleop import XboxTeleopDevice
+from uf_teleop_core.robot import UFRobotConfig, UFRobot
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -35,10 +32,15 @@ class UFRobotTeleop(object):
     def __init__(self, config: XBoxTeleopConfig, robot_config: UFRobotConfig):
         self.config = config
 
-        self._xbox = XBoxDevice(axes_deadzone=self.config.axes_deadzone, logger=logger)
-        self._xbox.start()
+        self.teleop = XboxTeleopDevice(
+            axes_deadzone=config.axes_deadzone,
+            max_distances=config.max_distances,
+            direction=config.direction,
+        )
+        self.teleop.connect()
 
         self.robot = UFRobot(robot_config)
+        # 调平、回零、模式切换等底层操作仍通过机械臂 SDK 完成
         self.arm = self.robot.real_arm
 
         self._motion_type = 0
@@ -103,9 +105,6 @@ class UFRobotTeleop(object):
         self._motion_thread = threading.Thread(target=self._robot_motion_loop, daemon=True)
         self._motion_thread.start()
 
-        axes = self._xbox.axes
-        buttons = self._xbox.buttons
-        direction = self._xbox.direction
         trigger_activated = False
 
         xbox_activated = False
@@ -129,7 +128,7 @@ class UFRobotTeleop(object):
         while self.arm and self.arm.connected:
             time.sleep(0.01)
 
-            if not self._xbox.connected:
+            if not self.teleop.connected:
                 if not warning_logged:
                     logger.warning("XBox controller is not connected. Please check the connection.")
                     warning_logged = True
@@ -149,8 +148,14 @@ class UFRobotTeleop(object):
                 continue
             warning_logged = False
 
-            btn_left_pressed = buttons.START.value == 1
-            btn_right_pressed = buttons.SELECT.value == 1
+            data = self.teleop.get_data()
+            if data is None:
+                continue
+            axes = data.axes
+            buttons = data.buttons
+
+            btn_left_pressed = buttons['START'] == 1
+            btn_right_pressed = buttons['SELECT'] == 1
 
             if btn_left_pressed: # left
                 left_cnt += 1
@@ -230,8 +235,8 @@ class UFRobotTeleop(object):
                     time.sleep(0.1)
                 continue
 
-            _xyz_is_zero = abs(axes.X.value) <= zero and abs(axes.Y.value) <= zero and abs(axes.Z.value) <= zero
-            _rpy_is_zero = abs(axes.RX.value) <= zero and abs(axes.RY.value) <= zero and abs(axes.RZ.value) <= zero
+            _xyz_is_zero = abs(axes['X']) <= zero and abs(axes['Y']) <= zero and abs(axes['Z']) <= zero
+            _rpy_is_zero = abs(axes['RX']) <= zero and abs(axes['RY']) <= zero and abs(axes['RZ']) <= zero
 
             if _xyz_is_zero and _rpy_is_zero:
                 if self._motion_type != 0:
@@ -261,58 +266,22 @@ class UFRobotTeleop(object):
                 xyz_is_zero = _xyz_is_zero
                 rpy_is_zero = _rpy_is_zero
 
-                x_zero = False
-                y_zero = False
-                dx_zero = False
-                dy_zero = False
-
-                if buttons.X.value == 1 or buttons.Y.value == 1:
-                    x_zero = False if buttons.X.value == 1 else True
-                    y_zero = False if buttons.Y.value == 1 else True
-                    dx_zero = True
-                    dy_zero = True
-                elif buttons.A.value == 1 or buttons.B.value == 1:
-                    x_zero = True
-                    y_zero = True
-                    dx_zero = False if buttons.A.value == 1 else True
-                    dy_zero = False if buttons.B.value == 1 else True
-
-                d = self.config.max_distances
-                if self.config.direction == 180:
-                    self.cartesian_pose_delta[0] = -axes.Y.value * d[0] if not x_zero else 0
-                    self.cartesian_pose_delta[1] = axes.X.value * d[1] if not y_zero else 0
-                    self.cartesian_pose_delta[3] = -axes.RX.value * d[3] if not dx_zero else 0
-                    self.cartesian_pose_delta[4] = -axes.RY.value * d[4] if not dy_zero else 0
-                elif self.config.direction == 90:
-                    self.cartesian_pose_delta[0] = -axes.X.value * d[0] if not x_zero else 0
-                    self.cartesian_pose_delta[1] = -axes.Y.value * d[1] if not y_zero else 0
-                    self.cartesian_pose_delta[3] = axes.RY.value * d[3] if not dx_zero else 0
-                    self.cartesian_pose_delta[4] = -axes.RX.value * d[4] if not dy_zero else 0
-                elif self.config.direction == 270:
-                    self.cartesian_pose_delta[0] = axes.X.value * d[0] if not x_zero else 0
-                    self.cartesian_pose_delta[1] = axes.Y.value * d[1] if not y_zero else 0
-                    self.cartesian_pose_delta[3] = -axes.RY.value * d[3] if not dx_zero else 0
-                    self.cartesian_pose_delta[4] = axes.RX.value * d[4] if not dy_zero else 0
-                else:
-                    self.cartesian_pose_delta[0] = axes.Y.value * d[0] if not x_zero else 0
-                    self.cartesian_pose_delta[1] = -axes.X.value * d[1] if not y_zero else 0
-                    self.cartesian_pose_delta[3] = axes.RX.value * d[3] if not dx_zero else 0
-                    self.cartesian_pose_delta[4] = axes.RY.value * d[4] if not dy_zero else 0
+                self.cartesian_pose_delta = list(data.delta)
                 z_direction = -1 if xbox_z_reversed else 1
-                if direction.Y.value == 1:
+                if buttons['DPAD_Y'] == 1:
                     # down
                     z_direction = -1
-                elif direction.Y.value == -1:
+                elif buttons['DPAD_Y'] == -1:
                     # up
                     z_direction = 1
-                self.cartesian_pose_delta[2] = axes.Z.value * d[2] * z_direction
-                self.cartesian_pose_delta[5] = axes.RZ.value * d[5] * z_direction
+                self.cartesian_pose_delta[2] *= z_direction
+                self.cartesian_pose_delta[5] *= z_direction
         logger.info("[Xbox] Teleoperation stopped.")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='configuration args')
-    parser.add_argument('-c', '--config', type=str, required=True, 
+    parser.add_argument('-c', '--config', type=str, required=True,
                        help='configuration file path, e.g.my_config.yaml')
     args = parser.parse_args()
     try:
@@ -321,7 +290,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Error loading config yaml file: {e}")
         exit(1)
-    
+
     robot_confg = UFRobotConfig(**config['RobotConfig'])
     teleop_confg = XBoxTeleopConfig(**config['TeleoperatorConfig'])
     teleop = UFRobotTeleop(teleop_confg, robot_confg)

@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import sys
 import time
 import yaml
 import logging
@@ -12,9 +10,8 @@ from pathlib import Path
 from typing import Tuple
 from dataclasses import dataclass
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from ufactory_devices.umi import XVLib, Transformations
-from ufactory_devices.robot import UFRobotConfig, UFRobot
+from uf_teleop_core.teleop import UmiTeleopDevice, CartesianTeleopMapper
+from uf_teleop_core.robot import UFRobotConfig, UFRobot
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -35,31 +32,28 @@ class UFRobotTeleop(object):
     def __init__(self, config: UmiTeleopConfig, robot_config: UFRobotConfig):
         self.config = config
 
-        init_slam = not self.config.use_vive_tracker
-        init_clamp_stream = self.config.use_gripper
+        self.teleop = UmiTeleopDevice(
+            serial_number=config.serial_number,
+            use_gripper=config.use_gripper,
+            use_vive_tracker=config.use_vive_tracker,
+            vive_tracker_id=config.vive_tracker_id,
+        )
+        self.teleop.connect()
 
-        if self.config.use_vive_tracker:
-            from ufactory_devices.umi.vive_tracker import ViveTracker
-            self.tracker = ViveTracker()
-        else:
-            self.tracker = None
-        self.xvlib = XVLib(self.config.serial_number, init_slam, init_clamp_stream)
+        # 遥操作位姿到机械臂目标位姿的映射
+        self.mapper = CartesianTeleopMapper(
+            config.tracker_to_robot_eef,
+            robot_base_pose=config.robot_base_pose,
+        )
 
         self.robot = UFRobot(robot_config)
-
-        tracker_to_robot_eef = self.config.tracker_to_robot_eef
-        self.tracker_to_robot_matrix = Transformations.xyzrpy_to_rotation_matrix(*tracker_to_robot_eef)
-        robot_base_pose = self.config.robot_base_pose
-        self.robot_base_matrix = Transformations.xyzrpy_to_rotation_matrix(*robot_base_pose)
-        self.begin_tracker_robot_matrix = None
         self.status = 2
-    
+
     def set_status(self, status):
         self.status = status
 
     def run(self):
         sleep_time = 1 / self.config.fps
-        gripper_norm = 0
 
         while self.status > 0:
             time.sleep(sleep_time)
@@ -67,43 +61,28 @@ class UFRobotTeleop(object):
             if self.status != 1:
                 continue
 
-            code = 0
-            if self.tracker is not None:
-                pose_data = self.tracker.get_pose(self.config.vive_tracker_id)
-                if pose_data is None:
-                    print('cant not get pose from vive tracker')
-                    continue
-            else:
-                code, pose_data = self.xvlib.xv_get_slam_data()
-            if code != 0:
+            data = self.teleop.get_data()
+            if data is None or not data.valid:
                 continue
-            position = pose_data.position.to_list(6)
-            quaternion = pose_data.quaternion.to_list(6)
-            x, y, z = position[0] * 1000, position[1] * 1000, position[2] * 1000
-            tracker_robot_matrix = Transformations.tracker_pose_to_robot_matrix(x, y, z, quaternion, self.tracker_to_robot_matrix)
-            if self.begin_tracker_robot_matrix is None:
-                self.begin_tracker_robot_matrix = tracker_robot_matrix
 
-            robot_target_pose = Transformations.tracker_robot_matrix_to_robot_pose(self.begin_tracker_robot_matrix, tracker_robot_matrix, self.robot_base_matrix, is_axis_angle=True)
-            x, y, z = robot_target_pose[0:3]
-            orientation = robot_target_pose[3:6]
+            if not self.mapper.initialized:
+                self.mapper.reset(data)
 
-            action = [x, y, z, orientation[0], orientation[1], orientation[2]]
+            robot_target_pose = self.mapper.map(data)
+            if robot_target_pose is None:
+                continue
 
-            if self.config.use_gripper:
-                code, clamp_data = self.xvlib.xv_get_clamp_stream_data()
-                if code == 0:
-                    gripper_norm = (87 - clamp_data.data) / (87 - 0)
-                action.append(gripper_norm)
+            action = list(robot_target_pose)
+            if self.config.use_gripper and data.gripper is not None:
+                action.append(data.gripper)
             code = self.robot.send_action(action)
             if code != 0:
                 break
-            
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='configuration args')
-    parser.add_argument('-c', '--config', type=str, required=True, 
+    parser.add_argument('-c', '--config', type=str, required=True,
                        help='configuration file path, e.g.my_config.yaml')
     args = parser.parse_args()
     try:
@@ -112,7 +91,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Error loading config yaml file: {e}")
         exit(1)
-    
+
     robot_confg = UFRobotConfig(**config['RobotConfig'])
     teleop_confg = UmiTeleopConfig(**config['TeleoperatorConfig'])
     teleop = UFRobotTeleop(teleop_confg, robot_confg)

@@ -15,7 +15,7 @@
 
 ```bash
 cd xbox_teleop
-pip install -r requirements.txt
+pip install -e "..[xbox]"
 ```
 
 根据目标机械臂修改 `config/xarm6_xbox_teleop.yaml`，然后启动：
