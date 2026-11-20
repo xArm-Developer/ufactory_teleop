@@ -1,11 +1,11 @@
 angle_unit: deg
 
 RobotConfig:
-  robot_ip: "192.168.1.73"
+  robot_ip: "192.168.1.29"
   robot_mode: 6
   robot_speed: 90   # °/s
   robot_acc: 500  # °/s^2
-  gripper_type: 0
+  gripper_type: 1
   start_joints: [0, 0, -90, 0, 90, 0]
 
 TeleoperatorConfig:
@@ -13,5 +13,5 @@ TeleoperatorConfig:
   joint_ids: [1, 2, 4, 5, 6, 7]
   joint_signs: [1, 1, -1, 1, 1, 1]
   start_joints: [0, 0, -90, 0, 90, 0]
-  gripper_id: -1
+  gripper_id: 8
   torque_joint_ids: [3]
