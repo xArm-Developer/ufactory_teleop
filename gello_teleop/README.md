@@ -102,19 +102,23 @@ gello_teleop/config/xarm5_gello_teleop.yaml
 xArm7 example:
 
 ```yaml
+angle_unit: deg
+
 RobotConfig:
   robot_ip: "192.168.1.29"
   robot_mode: 6
   robot_speed: 90
   robot_acc: 500
   gripper_type: 1
-  start_joints: [0, 0, 0, 1.5708, 0, 1.5708, 0]
+  start_joints: [0, 0, 0, 90, 0, 90, 0]
 
 TeleoperatorConfig:
   port: "/dev/serial/by-id/usb-FTDI_USB__-__Serial_Converter_FTAJZYC7-if00-port0"
-  start_joints: [0, 0, 0, 1.5708, 0, 1.5708, 0]
+  start_joints: [0, 0, 0, 90, 0, 90, 0]
   gripper_id: 8
 ```
+
+`angle_unit: deg` means pose angles are in degrees and are converted to radians by the loader; configs without it are treated as radians with a warning.
 
 ### RobotConfig
 
@@ -122,14 +126,14 @@ TeleoperatorConfig:
 | --- | --- |
 | `robot_ip` | IP address of the xArm controller. |
 | `robot_mode` | Robot motion mode. This Gello entry must use `6`, which means joint control mode. |
-| `robot_speed` | Joint speed in deg/s. `UFRobot` converts it to rad/s in mode 6. |
-| `robot_acc` | Joint acceleration in deg/s^2. `UFRobot` converts it to rad/s^2 in mode 6. |
+| `robot_speed` | Joint speed, following `angle_unit` (deg/s in the bundled config). The loader converts rad/s to deg/s for `UFRobot`, which then converts it to rad/s in mode 6. |
+| `robot_acc` | Joint acceleration, following `angle_unit` (deg/s^2 in the bundled config). The loader converts rad/s^2 to deg/s^2 for `UFRobot`, which then converts it to rad/s^2 in mode 6. |
 | `gripper_type` | Robot-side gripper type. `0` no gripper, `1` xArm Gripper, `2` xArm Gripper G2, `3` BIO Gripper G2, `10` Pika Gripper, `11` Robotiq Gripper. |
 | `gripper_port` | Pika Gripper serial port, only used when `gripper_type: 10`. |
 | `gripper_speed` | Gripper speed. `-1` uses the default value. |
 | `gripper_force` | Gripper force parameter. `-1` uses the default value. |
-| `start_joints` | Robot joint position to move to during startup, in rad. The length must match the robot axis count. |
-| `start_tcp_pose` | Optional TCP pose after reaching `start_joints`, in `[x, y, z, roll, pitch, yaw]`; position is in mm and orientation is in rad. |
+| `start_joints` | Robot joint position to move to during startup, in degrees (converted to radians by the loader). The length must match the robot axis count. |
+| `start_tcp_pose` | Optional TCP pose after reaching `start_joints`, in `[x, y, z, roll, pitch, yaw]`; position is in mm and orientation is in degrees. |
 
 ### TeleoperatorConfig
 
@@ -139,7 +143,7 @@ TeleoperatorConfig:
 | `port` | Gello Dynamixel serial port path, such as `/dev/serial/by-id/...`. |
 | `joint_ids` | Gello Dynamixel IDs used for robot joint mapping. For xArm7, the default is `[1, 2, 3, 4, 5, 6, 7]` if omitted. |
 | `joint_signs` | Direction sign for each Gello joint. Length must match `joint_ids`. For xArm7, the default is all `1` if omitted. |
-| `start_joints` | Robot joint angles corresponding to the Gello startup reference pose, in rad. Length must match `joint_ids`. |
+| `start_joints` | Robot joint angles corresponding to the Gello startup reference pose, in degrees (converted to radians by the loader). Length must match `joint_ids`. |
 | `gripper_id` | Gello gripper Dynamixel ID. Set to `-1` to disable the Gello gripper. |
 | `torque_joint_ids` | Dynamixel IDs that should be put into torque mode. This is commonly used for physical Gello joints that are not mapped on xArm5/xArm6 setups. |
 

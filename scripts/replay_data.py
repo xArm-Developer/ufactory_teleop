@@ -36,8 +36,8 @@ import argparse
 from pathlib import Path
 
 import numpy as np
-import yaml
 
+from uf_teleop_core.config import load_config
 from uf_teleop_core.teleop import CartesianTeleopMapper, TeleopData, TeleopSpace
 from uf_teleop_core.transformations import Transformations
 
@@ -222,8 +222,7 @@ def main():
         return 1
 
     try:
-        with open(Path(args.config).expanduser(), 'r') as f:
-            config = yaml.safe_load(f)
+        config = load_config(args.config)
         meta, frames = load_recording(args.input)
     except Exception as e:
         print('Error: {}'.format(e))

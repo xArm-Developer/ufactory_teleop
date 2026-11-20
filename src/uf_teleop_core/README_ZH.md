@@ -29,6 +29,19 @@ pip install pysurvive agx-pypika --no-deps
 
 如需声明式的完整 SDK 安装（包含 Pika 相机/GUI 工具），使用 `pip install -e ".[pika,vive]"`。正常安装会拉取上述 GUI/相机依赖；`--no-deps` 不能与 extras 组合使用，因为它会连 extra 依赖一并跳过。
 
+## 配置单位
+
+YAML 配置在顶层声明 `angle_unit`（仓库示例为 `deg`）。请使用 `load_config()` 加载，它会在构造 `UFRobotConfig` / 遥操作配置之前把姿态角转换为弧度：
+
+```python
+from uf_teleop_core.config import load_config
+config = load_config('pika_teleop/config/xarm6_pika_teleop.yaml')
+```
+
+所有连续角度量跟随 `angle_unit`：姿态字段（`start_joints`、`start_tcp_pose[3:6]`、`TeleoperatorConfig.start_joints`、`tracker_to_robot_eef[3:6]`、`robot_base_pose[3:6]`）、关节模式下的 `robot_speed` / `robot_acc`、`max_distances[3:6]`、`leveling_speed` / `homing_speed`。当 `angle_unit: rad` 时，加载器会把后一组转换为 xArm/UFRobot 内部使用的度。
+
+例外：`direction`（`0/90/180/270` 度标签）和笛卡尔模式的 `robot_speed` / `robot_acc`（mm/s、mm/s²）。缺少 `angle_unit` 的配置保持旧的混合单位（姿态为弧度，上述其余字段为度）并给出警告。
+
 ## 目录结构
 
 ```
@@ -81,12 +94,12 @@ src/uf_teleop_core/
 | --- | --- |
 | `robot_ip` | xArm 控制器 IP 地址。 |
 | `robot_mode` | 运动模式。`1` 伺服笛卡尔、`6` 关节控制、`7`（默认）在线轨迹规划。 |
-| `robot_speed` / `robot_acc` | 运动速度与加速度。 |
+| `robot_speed` / `robot_acc` | 运动速度与加速度。`robot_mode: 6` 时为关节 deg/s、deg/s²（内部转 rad/s）；笛卡尔模式为 mm/s、mm/s²。 |
 | `gripper_type` | 夹爪类型，取值见 `GripperType`。 |
 | `gripper_port` | 夹爪串口，仅 Pika Gripper (`10`) 使用。 |
 | `gripper_speed` / `gripper_force` | `-1` 表示使用各夹爪的默认值。 |
-| `start_joints` | 启动时先移动到的关节角，单位 rad。 |
-| `start_tcp_pose` | 可选。到达 `start_joints` 后再移动到的 TCP 位姿 `[x, y, z, roll, pitch, yaw]`。 |
+| `start_joints` | 启动时先移动到的关节角，单位 rad（YAML 加载器会从度转换）。 |
+| `start_tcp_pose` | 可选。到达 `start_joints` 后再移动到的 TCP 位姿 `[x, y, z, roll, pitch, yaw]`；位置 mm、姿态 rad（YAML 加载器会从度转换）。 |
 
 `GripperType` 取值：`NoGripper=0`、`xArmGripper=1`、`xArmGripperG2=2`、`BioGripperG2=3`、`PikaGripper=10`、`RobotiqGripper=11`。
 
@@ -144,7 +157,7 @@ with PikaTeleopDevice(use_gripper=True) as device:
 
 所有设备实现 `TeleopDevice`（`connect`、`close`、`get_data`），支持 `with` 用法。底层 SDK 对象仍可通过 `pika_sense`、`xvlib`、`tracker`、`gello_agent` 访问，便于采集原始数据与相机图像。Xbox / SpaceMouse 入口有意保留启停长按、调平、回零、模式切换等状态机：它们属于控制器行为而非设备读数。
 
-`CartesianTeleopMapper(tracker_to_robot_eef, robot_base_pose=None, is_axis_angle=True)` 将笛卡尔 `TeleopData` 映射为机器人目标位姿 `[x, y, z, rx, ry, rz]`（mm/rad），采用相对运动：目标 = 机械臂初始位姿 × inv(遥操作初始位姿) × 当前遥操作位姿。遥操作开始时调用 `reset(data, robot_tcp_pose)`（配置了 `robot_base_pose` 时省略该位姿），之后每帧调用 `map(data)`。内部复用 `Transformations.tracker_pose_to_robot_matrix()` / `tracker_robot_matrix_to_robot_pose()`。
+`CartesianTeleopMapper(tracker_to_robot_eef, robot_base_pose=None, is_axis_angle=True)` 将笛卡尔 `TeleopData` 映射为机器人目标位姿 `[x, y, z, rx, ry, rz]`（mm/rad），采用相对运动。构造参数的 `tracker_to_robot_eef` / `robot_base_pose` 姿态角为弧度（YAML 加载器会从度转换）：目标 = 机械臂初始位姿 × inv(遥操作初始位姿) × 当前遥操作位姿。遥操作开始时调用 `reset(data, robot_tcp_pose)`（配置了 `robot_base_pose` 时省略该位姿），之后每帧调用 `map(data)`。内部复用 `Transformations.tracker_pose_to_robot_matrix()` / `tracker_robot_matrix_to_robot_pose()`。
 
 不连接机器人、仅录制数据见 [`scripts/collect_data.py`](../../scripts/collect_data.py)；将录制的遥操作帧回放到机械臂见 [`scripts/replay_data.py`](../../scripts/replay_data.py)。
 

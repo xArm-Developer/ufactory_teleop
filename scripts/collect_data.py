@@ -31,7 +31,6 @@ import sys
 import gzip
 import json
 import time
-import yaml
 import logging
 import argparse
 from datetime import datetime, timezone
@@ -39,6 +38,7 @@ from pathlib import Path
 
 import numpy as np
 
+from uf_teleop_core.config import load_config
 from uf_teleop_core.teleop.pika_teleop_device import PikaTeleopDevice
 from uf_teleop_core.teleop.umi_teleop_device import UmiTeleopDevice
 from uf_teleop_core.teleop.gello_teleop_device import GelloTeleopDevice
@@ -128,6 +128,8 @@ def make_meta(teleop_type, fps, t0_us, config_path, robot_included, axes_include
             'joints': 'rad',
             'gripper': '0_open_1_closed',
             'delta': 'mm_deg_rpy',
+            'robot_tcp_pose': 'mm_rad',
+            'robot_joints': 'rad',
         },
     }
 
@@ -189,8 +191,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        with open(Path(args.config).expanduser(), 'r') as f:
-            config = yaml.safe_load(f)
+        config = load_config(args.config)
     except Exception as e:
         print('Error loading config yaml file: {}'.format(e))
         return 1

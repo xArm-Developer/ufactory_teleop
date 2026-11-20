@@ -29,6 +29,19 @@ pip install pysurvive agx-pypika --no-deps
 
 For a declarative full SDK install (including Pika camera/GUI tools), use `pip install -e ".[pika,vive]"`. A normal install pulls the GUI/camera dependencies above; `--no-deps` cannot be combined with extras because it suppresses extra requirements too.
 
+## Configuration Units
+
+YAML configs declare a top-level `angle_unit` (`deg` in the bundled examples). Use `load_config()` so pose angles are converted to radians before constructing `UFRobotConfig` / teleop configs:
+
+```python
+from uf_teleop_core.config import load_config
+config = load_config('pika_teleop/config/xarm6_pika_teleop.yaml')
+```
+
+All continuous angular values follow `angle_unit`: pose fields (`start_joints`, `start_tcp_pose[3:6]`, `TeleoperatorConfig.start_joints`, `tracker_to_robot_eef[3:6]`, `robot_base_pose[3:6]`), joint-mode `robot_speed` / `robot_acc`, `max_distances[3:6]`, and `leveling_speed` / `homing_speed`. With `angle_unit: rad`, the loader converts the latter group to the degrees expected by the internal xArm/UFRobot paths.
+
+Exceptions: `direction` (`0/90/180/270` degree labels) and Cartesian `robot_speed` / `robot_acc` (mm/s, mm/s²). Configs without `angle_unit` keep the legacy mixed units (poses in radians; the other fields above in degrees) and produce a warning.
+
 ## Directory Structure
 
 ```
@@ -81,12 +94,12 @@ Import from the subpackages explicitly, for example `from uf_teleop_core.robot i
 | --- | --- |
 | `robot_ip` | xArm controller IP address. |
 | `robot_mode` | Motion mode. `1` servo Cartesian, `6` joint control, `7` (default) online trajectory planning. |
-| `robot_speed` / `robot_acc` | Motion speed and acceleration. |
+| `robot_speed` / `robot_acc` | Motion speed and acceleration. In `robot_mode: 6` they are joint deg/s and deg/s² (converted to rad/s internally); in Cartesian modes they are mm/s and mm/s². |
 | `gripper_type` | Gripper type; see `GripperType`. |
 | `gripper_port` | Gripper serial port, used only by the Pika Gripper (`10`). |
 | `gripper_speed` / `gripper_force` | `-1` uses the per-gripper default. |
-| `start_joints` | Joint angles the arm moves to at startup, in radians. |
-| `start_tcp_pose` | Optional. TCP pose `[x, y, z, roll, pitch, yaw]` to move to after `start_joints`. |
+| `start_joints` | Joint angles the arm moves to at startup, in radians (the YAML loader converts from degrees). |
+| `start_tcp_pose` | Optional. TCP pose `[x, y, z, roll, pitch, yaw]` to move to after `start_joints`; position in mm, orientation in radians (the YAML loader converts from degrees). |
 
 `GripperType` values: `NoGripper=0`, `xArmGripper=1`, `xArmGripperG2=2`, `BioGripperG2=3`, `PikaGripper=10`, `RobotiqGripper=11`.
 
@@ -144,7 +157,7 @@ with PikaTeleopDevice(use_gripper=True) as device:
 
 All devices implement `TeleopDevice` (`connect`, `close`, `get_data`) and support `with` usage. The underlying SDK objects remain accessible (`pika_sense`, `xvlib`, `tracker`, `gello_agent`) for raw data and camera streams. The Xbox / SpaceMouse entries keep their activation, leveling, homing and mode-switching state machines in the solution scripts: those are controller behaviors, not device readings.
 
-`CartesianTeleopMapper(tracker_to_robot_eef, robot_base_pose=None, is_axis_angle=True)` maps cartesian `TeleopData` to a robot target pose `[x, y, z, rx, ry, rz]` (mm/rad) using relative motion: target = initial robot pose × inv(initial teleop pose) × current teleop pose. Call `reset(data, robot_tcp_pose)` when teleoperation starts (omit the pose when `robot_base_pose` is configured), then `map(data)` each frame. It reuses `Transformations.tracker_pose_to_robot_matrix()` / `tracker_robot_matrix_to_robot_pose()`.
+`CartesianTeleopMapper(tracker_to_robot_eef, robot_base_pose=None, is_axis_angle=True)` maps cartesian `TeleopData` to a robot target pose `[x, y, z, rx, ry, rz]` (mm/rad) using relative motion. The constructor expects `tracker_to_robot_eef` / `robot_base_pose` angles in radians (the YAML loader converts from degrees): target = initial robot pose × inv(initial teleop pose) × current teleop pose. Call `reset(data, robot_tcp_pose)` when teleoperation starts (omit the pose when `robot_base_pose` is configured), then `map(data)` each frame. It reuses `Transformations.tracker_pose_to_robot_matrix()` / `tracker_robot_matrix_to_robot_pose()`.
 
 For recording data without a robot, see [`scripts/collect_data.py`](../../scripts/collect_data.py); to replay recorded teleop frames on a robot, see [`scripts/replay_data.py`](../../scripts/replay_data.py).
 

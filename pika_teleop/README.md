@@ -90,18 +90,22 @@ pika_teleop/config/xarm6_pika_teleop.yaml
 ```
 
 ```yaml
+angle_unit: deg
+
 RobotConfig:
   robot_ip: "192.168.1.195"
   gripper_type: 10
   start_joints: [0, 0, 0, 0, 0, 0]
-  start_tcp_pose: [300, 0, 300, 3.1415927, 0, 0]
+  start_tcp_pose: [300, 0, 300, 180, 0, 0]
 
 TeleoperatorConfig:
   # pika_sense_port: "/dev/ttyUSB0"
   # vive_tracker_id: "WM0"
   use_gripper: True
-  tracker_to_robot_eef: [0, 0, 0, 3.1415927, -1.570796, 0]
+  tracker_to_robot_eef: [0, 0, 0, 180, -90, 0]
 ```
+
+`angle_unit: deg` means pose angles are in degrees; `load_config()` converts them to radians internally. Configs without `angle_unit` are treated as radians and produce a warning.
 
 ### RobotConfig
 
@@ -109,14 +113,14 @@ TeleoperatorConfig:
 | --- | --- |
 | `robot_ip` | Robot controller IP address. |
 | `robot_mode` | Motion mode. `1` means servo Cartesian mode; `7` means online Cartesian trajectory planning mode. Default is `7`. |
-| `robot_speed` | Cartesian motion speed. Default is `250`. |
-| `robot_acc` | Cartesian motion acceleration. Default is `1000`. |
+| `robot_speed` | Cartesian motion speed in mm/s. Default is `250`. |
+| `robot_acc` | Cartesian motion acceleration in mm/s². Default is `1000`. |
 | `gripper_type` | Gripper type. `0`: none, `1`: xArm Gripper, `2`: xArm Gripper G2, `3`: BIO Gripper G2, `10`: Pika Gripper, `11`: Robotiq Gripper. |
 | `gripper_port` | Pika Gripper serial port. Used only when `gripper_type: 10`. If omitted, the code tries to auto-detect it. |
 | `gripper_speed` | Gripper speed. `-1` uses the wrapper default. |
 | `gripper_force` | Gripper force. `-1` uses the wrapper default. |
-| `start_joints` | Joint angles used during startup, in radians. |
-| `start_tcp_pose` | Optional TCP pose after `start_joints`, in `[x, y, z, roll, pitch, yaw]`, with position in mm and orientation in radians. |
+| `start_joints` | Joint angles used during startup, in degrees (converted to radians by the loader). |
+| `start_tcp_pose` | Optional TCP pose after `start_joints`, in `[x, y, z, roll, pitch, yaw]`, with position in mm and orientation in degrees. |
 
 ### TeleoperatorConfig
 
@@ -126,7 +130,7 @@ TeleoperatorConfig:
 | `use_gripper` | Whether to read Pika Sense gripper distance and append a gripper command to the robot action. |
 | `pika_sense_port` | Pika Sense serial port, for example `/dev/ttyUSB0`. If omitted, `PikaDevice` scans serial devices with VID/PID `1a86:7522`. |
 | `vive_tracker_id` | Vive Tracker ID used by `pika_sense.get_pose()`. Default is `WM0`. Use the actual `LHR-...` ID if needed. |
-| `tracker_to_robot_eef` | Transform from tracker/Pika frame to robot end-effector frame, in `[x, y, z, roll, pitch, yaw]`. |
+| `tracker_to_robot_eef` | Transform from tracker/Pika frame to robot end-effector frame, in `[x, y, z, roll, pitch, yaw]`; orientation is in degrees. |
 
 ## 5. Vive Tracker Calibration
 

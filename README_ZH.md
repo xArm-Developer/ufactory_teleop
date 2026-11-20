@@ -23,6 +23,12 @@ cd ufactory_teleop
 
 以下各方案的命令均从仓库根目录开始执行。
 
+## 配置单位
+
+仓库示例配置在顶层声明 `angle_unit: deg`。所有连续角度量都跟随该单位：姿态角（`start_joints`、`start_tcp_pose` 姿态、`tracker_to_robot_eef`、`robot_base_pose`）、关节模式下的 `robot_speed` / `robot_acc`、`max_distances` 的旋转分量，以及 `leveling_speed` / `homing_speed`。`load_config()` 会把它们转换为内部使用的单位。
+
+例外：`direction`（`0/90/180/270`）和笛卡尔模式的 `robot_speed` / `robot_acc`（mm/s、mm/s²）不跟随 `angle_unit`。录制的 `TeleopData.delta` 始终为 mm/deg。缺少 `angle_unit` 的配置保持旧的混合单位（姿态为弧度，上述其余字段为度）并给出警告。
+
 ## 1. Pika Sense 遥操作
 
 使用 Agilex Robotics 的 Pika Sense —— 一款集成 Vive Tracker 安装位的手持式夹爪控制器 —— 实时捕捉 6 自由度手部运动，并将其映射为机械臂末端执行器的运动。

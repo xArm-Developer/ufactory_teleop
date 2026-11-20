@@ -92,18 +92,22 @@ pika_teleop/config/xarm6_pika_teleop.yaml
 ```
 
 ```yaml
+angle_unit: deg
+
 RobotConfig:
   robot_ip: "192.168.1.195"
   gripper_type: 10
   start_joints: [0, 0, 0, 0, 0, 0]
-  start_tcp_pose: [300, 0, 300, 3.1415927, 0, 0]
+  start_tcp_pose: [300, 0, 300, 180, 0, 0]
 
 TeleoperatorConfig:
   # pika_sense_port: "/dev/ttyUSB0"
   # vive_tracker_id: "WM0"
   use_gripper: True
-  tracker_to_robot_eef: [0, 0, 0, 3.1415927, -1.570796, 0]
+  tracker_to_robot_eef: [0, 0, 0, 180, -90, 0]
 ```
+
+`angle_unit: deg` 表示配置中的姿态单位为度；`load_config()` 会在内部转换为弧度。缺少 `angle_unit` 的旧配置会按弧度处理并给出警告。
 
 ### RobotConfig
 
@@ -111,14 +115,14 @@ TeleoperatorConfig:
 | --- | --- |
 | `robot_ip` | 机械臂控制器 IP 地址。 |
 | `robot_mode` | 运动模式。`1` 为 servo 笛卡尔伺服模式，`7` 为笛卡尔在线轨迹规划模式，默认 `7`。 |
-| `robot_speed` | 机械臂运动速度，默认 `250`。 |
-| `robot_acc` | 机械臂运动加速度，默认 `1000`。 |
+| `robot_speed` | 机械臂运动速度，单位 mm/s，默认 `250`。 |
+| `robot_acc` | 机械臂运动加速度，单位 mm/s²，默认 `1000`。 |
 | `gripper_type` | 夹爪类型。`0` 无夹爪，`1` xArm Gripper，`2` xArm Gripper G2，`3` BIO Gripper G2，`10` Pika Gripper，`11` Robotiq Gripper。 |
 | `gripper_port` | Pika Gripper 串口，仅 `gripper_type: 10` 时使用。不填时程序尝试自动识别。 |
 | `gripper_speed` | 夹爪速度，`-1` 表示使用默认值。 |
 | `gripper_force` | 夹爪力控参数，`-1` 表示使用默认值。 |
-| `start_joints` | 启动时机械臂先移动到的关节角，单位 rad。 |
-| `start_tcp_pose` | 可选。到达 `start_joints` 后再移动到的 TCP 位姿，格式为 `[x, y, z, roll, pitch, yaw]`，位置单位 mm，姿态单位 rad。 |
+| `start_joints` | 启动时机械臂先移动到的关节角，单位度（由加载器转换为弧度）。 |
+| `start_tcp_pose` | 可选。到达 `start_joints` 后再移动到的 TCP 位姿，格式为 `[x, y, z, roll, pitch, yaw]`，位置单位 mm，姿态单位度。 |
 
 ### TeleoperatorConfig
 
@@ -128,7 +132,7 @@ TeleoperatorConfig:
 | `use_gripper` | 是否读取 Pika Sense 夹爪距离并向机器人发送夹爪目标。 |
 | `pika_sense_port` | Pika Sense 串口，例如 `/dev/ttyUSB0`。不填时 `PikaDevice` 会扫描 VID/PID 为 `1a86:7522` 的串口设备。 |
 | `vive_tracker_id` | `pika_sense.get_pose()` 使用的 Vive Tracker 设备名字，默认 `WM0`。|
-| `tracker_to_robot_eef` | Tracker/Pika 坐标系到机器人末端坐标系的变换，格式为 `[x, y, z, roll, pitch, yaw]`。 |
+| `tracker_to_robot_eef` | Tracker/Pika 坐标系到机器人末端坐标系的变换，格式为 `[x, y, z, roll, pitch, yaw]`，姿态单位为度。 |
 
 ## 5. Vive Tracker 标定
 

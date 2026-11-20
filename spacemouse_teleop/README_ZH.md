@@ -65,19 +65,19 @@ SpaceMouse 输入用于模式 7 下的笛卡尔目标控制。所有轴回到中
 
 ## 配置说明
 
-`RobotConfig` 用于设置机器人连接和启动参数。将 `robot_ip` 设置为机械臂地址，并根据实际设备检查启动关节、TCP 位姿和夹爪类型。
+`RobotConfig` 用于设置机器人连接和启动参数。将 `robot_ip` 设置为机械臂地址，并根据实际设备检查启动关节、TCP 位姿和夹爪类型。示例配置声明了 `angle_unit: deg`，`start_joints` 与 `start_tcp_pose` 的姿态单位为度，加载器会转换为弧度。
 
 `TeleoperatorConfig` 参数：
 
 | 参数 | 含义 | 示例 |
 | --- | --- | --- |
 | `fps` | 笛卡尔指令循环频率 | `30` |
-| `leveling_speed` | 调平动作使用的速度 | `45` |
-| `homing_speed` | 回 Home 动作使用的速度 | `45` |
-| `cartesian_speed` | 笛卡尔运动速度 | `200` |
+| `leveling_speed` | 调平动作使用的速度，跟随 `angle_unit`（示例配置为 deg/s） | `45` |
+| `homing_speed` | 回 Home 动作使用的速度，跟随 `angle_unit`（示例配置为 deg/s） | `45` |
+| `cartesian_speed` | 笛卡尔运动速度，单位 mm/s（不受 `angle_unit` 影响） | `200` |
 | `direction` | XY 映射方向，可选 `0`、`90`、`180`、`270` 度 | `0` |
 | `axes_deadzone` | 各轴死区，顺序为 `[x, y, z, roll, pitch, yaw]` | `[0.15, 0.15, 0.10, 0.15, 0.15, 0.10]` |
-| `max_distances` | 最大位姿偏移，顺序为 `[x, y, z, roll, pitch, yaw]`；平移单位为 mm，旋转单位为度 | `[500, 500, 500, 60, 60, 60]` |
+| `max_distances` | 最大位姿偏移，顺序为 `[x, y, z, roll, pitch, yaw]`；平移单位为 mm，旋转跟随 `angle_unit`（示例配置为度） | `[500, 500, 500, 60, 60, 60]` |
 
 示例配置中的启动位姿适用于特定 xArm6 设置，不适用于所有机械臂。连接前请确认机器人地址及与现场配置有关的参数。
 

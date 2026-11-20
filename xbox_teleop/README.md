@@ -47,19 +47,19 @@ Motion is sent as Cartesian targets in robot mode 7. Returning all axes to neutr
 
 ## Configuration
 
-`RobotConfig` describes the robot connection and startup settings. At minimum, set `robot_ip` to the robot's address. Review `start_joints`, `start_tcp_pose`, and `gripper_type` for the setup before running.
+`RobotConfig` describes the robot connection and startup settings. At minimum, set `robot_ip` to the robot's address. Review `start_joints`, `start_tcp_pose`, and `gripper_type` for the setup before running. The bundled config declares `angle_unit: deg`; `start_joints` and the `start_tcp_pose` orientation are in degrees and are converted to radians by the loader.
 
 `TeleoperatorConfig` fields:
 
 | Field | Meaning | Example |
 | --- | --- | --- |
 | `fps` | Cartesian command loop frequency | `30` |
-| `leveling_speed` | Speed used by the leveling action | `45` |
-| `homing_speed` | Speed used by the home action | `45` |
-| `cartesian_speed` | Cartesian motion speed | `200` |
+| `leveling_speed` | Speed used by the leveling action; follows `angle_unit` (deg/s in the bundled config) | `45` |
+| `homing_speed` | Speed used by the home action; follows `angle_unit` (deg/s in the bundled config) | `45` |
+| `cartesian_speed` | Cartesian motion speed, in mm/s (not affected by `angle_unit`) | `200` |
 | `direction` | XY mapping orientation: `0`, `90`, `180`, or `270` degrees | `0` |
 | `axes_deadzone` | Per-axis deadzone in `[X, Y, Z, RX, RY, RZ]` order | `[0.15, 0.15, 0.1, 0.2, 0.2, 0.1]` |
-| `max_distances` | Maximum pose offset in `[X, Y, Z, roll, pitch, yaw]` order; translation values use mm and rotation values use degrees | `[500, 500, 500, 60, 60, 60]` |
+| `max_distances` | Maximum pose offset in `[X, Y, Z, roll, pitch, yaw]` order; translation values use mm, rotation values follow `angle_unit` (degrees in the bundled config) | `[500, 500, 500, 60, 60, 60]` |
 
 The example file uses conservative starting pose values for an xArm6 and is not universal. Confirm the robot address and setup-specific values before connecting.
 

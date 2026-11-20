@@ -102,19 +102,23 @@ gello_teleop/config/xarm5_gello_teleop.yaml
 xArm7 示例：
 
 ```yaml
+angle_unit: deg
+
 RobotConfig:
   robot_ip: "192.168.1.29"
   robot_mode: 6
   robot_speed: 90
   robot_acc: 500
   gripper_type: 1
-  start_joints: [0, 0, 0, 1.5708, 0, 1.5708, 0]
+  start_joints: [0, 0, 0, 90, 0, 90, 0]
 
 TeleoperatorConfig:
   port: "/dev/serial/by-id/usb-FTDI_USB__-__Serial_Converter_FTAJZYC7-if00-port0"
-  start_joints: [0, 0, 0, 1.5708, 0, 1.5708, 0]
+  start_joints: [0, 0, 0, 90, 0, 90, 0]
   gripper_id: 8
 ```
+
+`angle_unit: deg` 表示配置中的姿态单位为度，加载器会转换为弧度；缺少该字段的配置按弧度处理并给出警告。
 
 ### RobotConfig
 
@@ -122,14 +126,14 @@ TeleoperatorConfig:
 | --- | --- |
 | `robot_ip` | 机械臂控制器 IP 地址。 |
 | `robot_mode` | 机器人运动模式。Gello 入口脚本必须使用 `6`，表示关节控制模式。 |
-| `robot_speed` | 关节速度，单位为 deg/s。 |
-| `robot_acc` | 关节加速度，单位为 deg/s^2。 |
+| `robot_speed` | 关节速度，跟随 `angle_unit`（示例配置为 deg/s）。加载器会把 rad/s 转换为 deg/s 交给 `UFRobot`，后者在 mode 6 中再转 rad/s。 |
+| `robot_acc` | 关节加速度，跟随 `angle_unit`（示例配置为 deg/s^2）。加载器会把 rad/s^2 转换为 deg/s^2 交给 `UFRobot`，后者在 mode 6 中再转 rad/s^2。 |
 | `gripper_type` | 机器人侧夹爪类型。`0` 无夹爪，`1` xArm Gripper，`2` xArm Gripper G2，`3` BIO Gripper G2，`10` Pika Gripper，`11` Robotiq Gripper。 |
 | `gripper_port` | Pika Gripper 串口，仅 `gripper_type: 10` 时使用。 |
 | `gripper_speed` | 夹爪速度，`-1` 表示使用默认值。 |
 | `gripper_force` | 夹爪力控参数，`-1` 表示使用默认值。 |
-| `start_joints` | 启动时机械臂先移动到的关节角，单位 rad，长度需要与机器人轴数一致。 |
-| `start_tcp_pose` | 可选。到达 `start_joints` 后再移动到的 TCP 位姿，格式为 `[x, y, z, roll, pitch, yaw]`，位置单位 mm，姿态单位 rad。 |
+| `start_joints` | 启动时机械臂先移动到的关节角，单位度（由加载器转换为弧度），长度需要与机器人轴数一致。 |
+| `start_tcp_pose` | 可选。到达 `start_joints` 后再移动到的 TCP 位姿，格式为 `[x, y, z, roll, pitch, yaw]`，位置单位 mm，姿态单位度。 |
 
 ### TeleoperatorConfig
 
@@ -139,7 +143,7 @@ TeleoperatorConfig:
 | `port` | Gello Dynamixel 串口路径，例如 `/dev/serial/by-id/...`。 |
 | `joint_ids` | 参与机器人关节映射的 Gello Dynamixel ID。xArm7 未填写时默认 `[1, 2, 3, 4, 5, 6, 7]`。 |
 | `joint_signs` | 每个 Gello 关节的方向符号，长度必须与 `joint_ids` 一致。xArm7 未填写时默认全为 `1`。 |
-| `start_joints` | Gello 启动参考姿态对应的机器人关节角，单位 rad，长度必须与 `joint_ids` 一致。 |
+| `start_joints` | Gello 启动参考姿态对应的机器人关节角，单位度（由加载器转换为弧度），长度必须与 `joint_ids` 一致。 |
 | `gripper_id` | Gello 夹爪 Dynamixel ID。设置为 `-1` 表示不使用 Gello 夹爪。 |
 | `torque_joint_ids` | 需要开启力矩模式的 Dynamixel ID。常用于 xArm5/xArm6 映射中不参与控制但需要固定的 Gello 物理关节。 |
 

@@ -1,12 +1,14 @@
+angle_unit: deg
+
 RobotConfig:
   robot_ip: "192.168.1.29"
   robot_mode: 6
   robot_speed: 90   # °/s
   robot_acc: 500  # °/s^2
   gripper_type: 1
-  start_joints: [0, 0, 0, 1.5708, 0, 1.5708, 0]
+  start_joints: [0, 0, 0, 90, 0, 90, 0]
 
 TeleoperatorConfig:
   port: "/dev/serial/by-id/usb-FTDI_USB__-__Serial_Converter_FTAJZYC7-if00-port0"
-  start_joints: [0, 0, 0, 1.5708, 0, 1.5708, 0]
+  start_joints: [0, 0, 0, 90, 0, 90, 0]
   gripper_id: 8

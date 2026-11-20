@@ -25,6 +25,12 @@ cd ufactory_teleop
 
 The commands in each solution below are run from the repository root.
 
+## Configuration Units
+
+Bundled YAML configs declare `angle_unit: deg`. Continuous angular values follow it: pose angles (`start_joints`, the `start_tcp_pose` orientation, `tracker_to_robot_eef`, `robot_base_pose`), joint-mode `robot_speed` / `robot_acc`, `max_distances` rotations, and `leveling_speed` / `homing_speed`. `load_config()` converts them to the units used internally.
+
+Exceptions: `direction` (`0/90/180/270`) and Cartesian `robot_speed` / `robot_acc` (mm/s, mm/s²) do not follow `angle_unit`. Recorded `TeleopData.delta` is always mm/deg. Configs without `angle_unit` keep the legacy mixed units (poses in radians; the other fields above in degrees) and produce a warning.
+
 ## 1. Pika Sense Teleoperation
 
 Uses Agilex Robotics' Pika Sense — a handheld clamp controller with integrated Vive Tracker mount — to capture 6-DOF hand motion and map it to robot end-effector movement in real time.

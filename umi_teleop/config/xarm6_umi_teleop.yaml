@@ -1,9 +1,11 @@
+angle_unit: deg
+
 RobotConfig:
   robot_ip: "192.168.1.29"  # left
   # robot_ip: "192.168.1.195" # right
   gripper_type: 2
-  start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
-  start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+  start_joints: [0, 0, 0, -180, 90, -90]
+  start_tcp_pose: [350, 0, 250, -90, 0, -90]
 
 TeleoperatorConfig:
   serial_number: "250801DR48FP26001318" # left
@@ -12,6 +14,6 @@ TeleoperatorConfig:
   vive_tracker_id: "LHR-555DC7BF"  # left
   # vive_tracker_id: "LHR-2425BAD3"  # right
   use_gripper: True
-  tracker_to_robot_eef: [0, 0, 0, 0, 0, -1.570796] # left
-  # tracker_to_robot_eef: [0, 0, 0, 0, 0, 1.570796] # right
-  robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+  tracker_to_robot_eef: [0, 0, 0, 0, 0, -90] # left
+  # tracker_to_robot_eef: [0, 0, 0, 0, 0, 90] # right
+  robot_base_pose: [350, 0, 250, -90, 0, -90]

@@ -97,53 +97,59 @@ Example files:
 ### Single-Robot YAML
 
 ```yaml
+angle_unit: deg
+
 RobotConfig:
   robot_ip: "192.168.1.29"
   gripper_type: 2
-  start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
-  start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+  start_joints: [0, 0, 0, -180, 90, -90]
+  start_tcp_pose: [350, 0, 250, -90, 0, -90]
 
 TeleoperatorConfig:
   serial_number: "250801DR48FP26001318"
   use_vive_tracker: True
   vive_tracker_id: "LHR-555DC7BF"
   use_gripper: True
-  tracker_to_robot_eef: [0, 0, 0, 0, 0, -1.570796]
-  robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+  tracker_to_robot_eef: [0, 0, 0, 0, 0, -90]
+  robot_base_pose: [350, 0, 250, -90, 0, -90]
 ```
+
+`angle_unit: deg` means pose angles are in degrees and are converted to radians by the loader; configs without it are treated as radians with a warning.
 
 ### Dual-Robot YAML
 
 The dual script expects top-level `L` and `R` sections. Each section must contain its own `RobotConfig` and `TeleoperatorConfig`.
 
 ```yaml
+angle_unit: deg
+
 L:
   RobotConfig:
     robot_ip: "192.168.1.29"
     gripper_type: 2
-    start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
-    start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+    start_joints: [0, 0, 0, -180, 90, -90]
+    start_tcp_pose: [350, 0, 250, -90, 0, -90]
   TeleoperatorConfig:
     serial_number: "250801DR48FP26001318"
     use_vive_tracker: True
     vive_tracker_id: "LHR-555DC7BF"
     use_gripper: True
-    tracker_to_robot_eef: [0, 0, 0, 0, 0, -1.570796]
-    robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+    tracker_to_robot_eef: [0, 0, 0, 0, 0, -90]
+    robot_base_pose: [350, 0, 250, -90, 0, -90]
 
 R:
   RobotConfig:
     robot_ip: "192.168.1.195"
     gripper_type: 2
-    start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
-    start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+    start_joints: [0, 0, 0, -180, 90, -90]
+    start_tcp_pose: [350, 0, 250, -90, 0, -90]
   TeleoperatorConfig:
     serial_number: "250801DR48FP26001295"
     use_vive_tracker: True
     vive_tracker_id: "LHR-2425BAD3"
     use_gripper: True
-    tracker_to_robot_eef: [0, 0, 0, 0, 0, 1.570796]
-    robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+    tracker_to_robot_eef: [0, 0, 0, 0, 0, 90]
+    robot_base_pose: [350, 0, 250, -90, 0, -90]
 ```
 
 ## 5. Parameter Reference
@@ -154,14 +160,14 @@ R:
 | --- | --- |
 | `robot_ip` | Robot controller IP address. |
 | `robot_mode` | Motion mode. `1`: servo Cartesian mode; `7`: online Cartesian trajectory planning mode. Default is `7`. |
-| `robot_speed` | Cartesian motion speed. Default is `250`. |
-| `robot_acc` | Cartesian motion acceleration. Default is `1000`. |
+| `robot_speed` | Cartesian motion speed in mm/s. Default is `250`. |
+| `robot_acc` | Cartesian motion acceleration in mm/s². Default is `1000`. |
 | `gripper_type` | `0`: none, `1`: xArm Gripper, `2`: xArm Gripper G2, `3`: BIO Gripper G2, `10`: Pika Gripper, `11`: Robotiq Gripper. |
 | `gripper_port` | Pika Gripper serial port, only used with `gripper_type: 10`. |
 | `gripper_speed` | Gripper speed. `-1` uses the default. |
 | `gripper_force` | Gripper force. `-1` uses the default. |
-| `start_joints` | Startup joint angles in radians. |
-| `start_tcp_pose` | Optional startup TCP pose in `[x, y, z, roll, pitch, yaw]`, with position in mm and orientation in radians. |
+| `start_joints` | Startup joint angles in degrees (converted to radians by the loader). |
+| `start_tcp_pose` | Optional startup TCP pose in `[x, y, z, roll, pitch, yaw]`, with position in mm and orientation in degrees. |
 
 ### TeleoperatorConfig
 
@@ -172,8 +178,8 @@ R:
 | `use_gripper` | Whether to read UMI clamp stream and append a gripper command. |
 | `use_vive_tracker` | Whether to use Vive Tracker pose. If false, UMI SLAM pose is used. |
 | `vive_tracker_id` | Vive Tracker ID, for example `LHR-555DC7BF`. |
-| `tracker_to_robot_eef` | Transform from tracker/UMI frame to robot end-effector frame. |
-| `robot_base_pose` | Robot reference end-effector pose used as the teleoperation base pose. |
+| `tracker_to_robot_eef` | Transform from tracker/UMI frame to robot end-effector frame; orientation is in degrees. |
+| `robot_base_pose` | Robot reference end-effector pose used as the teleoperation base pose; position in mm, orientation in degrees. |
 
 ## 6. Vive Tracker Calibration
 

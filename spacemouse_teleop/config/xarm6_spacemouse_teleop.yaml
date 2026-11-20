@@ -1,8 +1,10 @@
+angle_unit: deg
+
 RobotConfig:
   robot_ip: "192.168.1.83"
   gripper_type: 0
-  start_joints: [0, -0.5235987755982988, -0.4014257279586958, 0, 0.9250245035569946, 0]
-  start_tcp_pose: [300, 0, 300, 3.1415927, 0, 0]
+  start_joints: [0, -30, -23, 0, 53, 0]
+  start_tcp_pose: [300, 0, 300, 180, 0, 0]
 
 TeleoperatorConfig:
   fps: 30

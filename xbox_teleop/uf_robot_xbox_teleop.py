@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import time
-import yaml
 import logging
 import argparse
 import threading
-from pathlib import Path
 from typing import Tuple
 from dataclasses import dataclass
 
+from uf_teleop_core.config import load_config
 from uf_teleop_core.teleop import XboxTeleopDevice
 from uf_teleop_core.robot import UFRobotConfig, UFRobot
 
@@ -285,8 +284,7 @@ if __name__ == '__main__':
                        help='configuration file path, e.g.my_config.yaml')
     args = parser.parse_args()
     try:
-        with open(Path(args.config).expanduser(), 'r') as f:
-            config = yaml.safe_load(f)
+        config = load_config(args.config)
     except Exception as e:
         print(f"Error loading config yaml file: {e}")
         exit(1)

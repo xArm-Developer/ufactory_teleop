@@ -65,19 +65,19 @@ The SpaceMouse axes command Cartesian targets in robot mode 7. Returning all axe
 
 ## Configuration
 
-`RobotConfig` describes the robot connection and startup settings. Set `robot_ip` to the robot's address and review the startup joints, TCP pose, and gripper type for the target setup.
+`RobotConfig` describes the robot connection and startup settings. Set `robot_ip` to the robot's address and review the startup joints, TCP pose, and gripper type for the target setup. The bundled config declares `angle_unit: deg`; `start_joints` and the `start_tcp_pose` orientation are in degrees and are converted to radians by the loader.
 
 `TeleoperatorConfig` fields:
 
 | Field | Meaning | Example |
 | --- | --- | --- |
 | `fps` | Cartesian command loop frequency | `30` |
-| `leveling_speed` | Speed used by the leveling action | `45` |
-| `homing_speed` | Speed used by the home action | `45` |
-| `cartesian_speed` | Cartesian motion speed | `200` |
+| `leveling_speed` | Speed used by the leveling action; follows `angle_unit` (deg/s in the bundled config) | `45` |
+| `homing_speed` | Speed used by the home action; follows `angle_unit` (deg/s in the bundled config) | `45` |
+| `cartesian_speed` | Cartesian motion speed, in mm/s (not affected by `angle_unit`) | `200` |
 | `direction` | XY mapping orientation: `0`, `90`, `180`, or `270` degrees | `0` |
 | `axes_deadzone` | Per-axis deadzone in `[x, y, z, roll, pitch, yaw]` order | `[0.15, 0.15, 0.10, 0.15, 0.15, 0.10]` |
-| `max_distances` | Maximum pose offset in `[x, y, z, roll, pitch, yaw]` order; translation values use mm and rotation values use degrees | `[500, 500, 500, 60, 60, 60]` |
+| `max_distances` | Maximum pose offset in `[x, y, z, roll, pitch, yaw]` order; translation values use mm, rotation values follow `angle_unit` (degrees in the bundled config) | `[500, 500, 500, 60, 60, 60]` |
 
 The example file uses a particular xArm6 startup pose. Confirm the robot address and setup-specific values before connecting.
 

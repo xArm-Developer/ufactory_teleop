@@ -100,53 +100,59 @@ sudo reboot
 ### 单臂配置
 
 ```yaml
+angle_unit: deg
+
 RobotConfig:
   robot_ip: "192.168.1.29"
   gripper_type: 2
-  start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
-  start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+  start_joints: [0, 0, 0, -180, 90, -90]
+  start_tcp_pose: [350, 0, 250, -90, 0, -90]
 
 TeleoperatorConfig:
   serial_number: "250801DR48FP26001318"
   use_vive_tracker: True
   vive_tracker_id: "LHR-555DC7BF"
   use_gripper: True
-  tracker_to_robot_eef: [0, 0, 0, 0, 0, -1.570796]
-  robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+  tracker_to_robot_eef: [0, 0, 0, 0, 0, -90]
+  robot_base_pose: [350, 0, 250, -90, 0, -90]
 ```
+
+`angle_unit: deg` 表示配置中的姿态单位为度，加载器会转换为弧度；缺少该字段的配置按弧度处理并给出警告。
 
 ### 双臂配置
 
 双臂脚本要求最外层包含 `L` 和 `R`，每组内部都有自己的 `RobotConfig` 和 `TeleoperatorConfig`。
 
 ```yaml
+angle_unit: deg
+
 L:
   RobotConfig:
     robot_ip: "192.168.1.29"
     gripper_type: 2
-    start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
-    start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+    start_joints: [0, 0, 0, -180, 90, -90]
+    start_tcp_pose: [350, 0, 250, -90, 0, -90]
   TeleoperatorConfig:
     serial_number: "250801DR48FP26001318"
     use_vive_tracker: True
     vive_tracker_id: "LHR-555DC7BF"
     use_gripper: True
-    tracker_to_robot_eef: [0, 0, 0, 0, 0, -1.570796]
-    robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+    tracker_to_robot_eef: [0, 0, 0, 0, 0, -90]
+    robot_base_pose: [350, 0, 250, -90, 0, -90]
 
 R:
   RobotConfig:
     robot_ip: "192.168.1.195"
     gripper_type: 2
-    start_joints: [0, 0, 0, -3.1415927, 1.570796, -1.570796]
-    start_tcp_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+    start_joints: [0, 0, 0, -180, 90, -90]
+    start_tcp_pose: [350, 0, 250, -90, 0, -90]
   TeleoperatorConfig:
     serial_number: "250801DR48FP26001295"
     use_vive_tracker: True
     vive_tracker_id: "LHR-2425BAD3"
     use_gripper: True
-    tracker_to_robot_eef: [0, 0, 0, 0, 0, 1.570796]
-    robot_base_pose: [350, 0, 250, -1.570796, 0, -1.570796]
+    tracker_to_robot_eef: [0, 0, 0, 0, 0, 90]
+    robot_base_pose: [350, 0, 250, -90, 0, -90]
 ```
 
 ## 5. 参数说明
@@ -157,14 +163,14 @@ R:
 | --- | --- |
 | `robot_ip` | 机械臂控制器 IP 地址。 |
 | `robot_mode` | 运动模式。`1` 为 servo 笛卡尔伺服模式，`7` 为笛卡尔在线轨迹规划模式，默认 `7`。 |
-| `robot_speed` | 机械臂运动速度，默认 `250`。 |
-| `robot_acc` | 机械臂运动加速度，默认 `1000`。 |
+| `robot_speed` | 机械臂运动速度，单位 mm/s，默认 `250`。 |
+| `robot_acc` | 机械臂运动加速度，单位 mm/s²，默认 `1000`。 |
 | `gripper_type` | `0` 无夹爪，`1` xArm Gripper，`2` xArm Gripper G2，`3` BIO Gripper G2，`10` Pika Gripper，`11` Robotiq Gripper。 |
 | `gripper_port` | Pika Gripper 串口，仅 `gripper_type: 10` 时使用，不指定则自动检测。 |
 | `gripper_speed` | 夹爪速度，`-1` 表示使用默认值。 |
 | `gripper_force` | 夹爪力控参数，`-1` 表示使用默认值。 |
-| `start_joints` | 启动时机械臂先移动到的关节角，单位 rad。 |
-| `start_tcp_pose` | 可选启动 TCP 位姿，格式为 `[x, y, z, roll, pitch, yaw]`，位置单位 mm，姿态单位 rad。 |
+| `start_joints` | 启动时机械臂先移动到的关节角，单位度（由加载器转换为弧度）。 |
+| `start_tcp_pose` | 可选启动 TCP 位姿，格式为 `[x, y, z, roll, pitch, yaw]`，位置单位 mm，姿态单位度。 |
 
 ### TeleoperatorConfig
 
@@ -175,8 +181,8 @@ R:
 | `use_gripper` | 是否读取 UMI clamp stream 并追加夹爪控制量。 |
 | `use_vive_tracker` | 是否使用 Vive Tracker 位姿。为 `False` 时使用 UMI SLAM 位姿。 |
 | `vive_tracker_id` | Vive Tracker ID，例如 `LHR-555DC7BF`，双臂时请一定要使用序列号而不是"WM0"这种设备名。 |
-| `tracker_to_robot_eef` | Tracker/UMI 坐标系到机器人末端坐标系的变换。 |
-| `robot_base_pose` | 遥操作基准机械臂末端位姿。 |
+| `tracker_to_robot_eef` | Tracker/UMI 坐标系到机器人末端坐标系的变换，姿态单位为度。 |
+| `robot_base_pose` | 遥操作基准机械臂末端位姿，位置单位 mm，姿态单位为度。 |
 
 ## 6. Vive Tracker 标定
 

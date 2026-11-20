@@ -1,5 +1,6 @@
 import threading
 from uf_robot_umi_teleop import *
+from uf_teleop_core.config import load_config
 
 
 if __name__ == '__main__':
@@ -8,8 +9,7 @@ if __name__ == '__main__':
                        help='configuration file path, e.g.my_config.yaml')
     args = parser.parse_args()
     try:
-        with open(Path(args.config).expanduser(), 'r') as f:
-            config = yaml.safe_load(f)
+        config = load_config(args.config)
     except Exception as e:
         print(f"Error loading config yaml file: {e}")
         exit(1)

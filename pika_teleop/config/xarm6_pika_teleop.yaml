@@ -1,11 +1,13 @@
+angle_unit: deg
+
 RobotConfig:
   robot_ip: "192.168.1.195"
   gripper_type: 10
   start_joints: [0, 0, 0, 0, 0, 0]
-  start_tcp_pose: [300, 0, 300, 3.1415927, 0, 0]
+  start_tcp_pose: [300, 0, 300, 180, 0, 0]
 
 TeleoperatorConfig:
   # pika_sense_port: "/dev/ttyUSB0"
   # vive_tracker_id: "WM0"
   use_gripper: True
-  tracker_to_robot_eef: [0, 0, 0, 3.1415927, -1.570796, 0]
+  tracker_to_robot_eef: [0, 0, 0, 180, -90, 0]
