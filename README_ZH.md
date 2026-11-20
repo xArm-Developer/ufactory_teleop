@@ -174,21 +174,37 @@ with PikaTeleopDevice(use_gripper=True) as device:
         print(data.position, data.quaternion, data.gripper, data.buttons)
 ```
 
-独立采集遥操作数据（每帧一行 JSON）：
+独立采集遥操作数据（v2 JSONL 格式）：
 
 ```bash
 # 仅采集 teleop 设备
-python data_collection/collect_data.py --teleop-type pika \
+python scripts/collect_data.py --teleop-type pika \
     -c pika_teleop/config/xarm6_pika_teleop.yaml -o data/pika_ep001.jsonl
 
 # 同时记录机械臂状态（初始化会移动机械臂到 start_joints，采集中不发送动作）
-python data_collection/collect_data.py --teleop-type umi \
+python scripts/collect_data.py --teleop-type umi \
     -c umi_teleop/config/xarm6_umi_teleop.yaml -o data/umi_ep001.jsonl --with-robot
 ```
 
 支持 `--teleop-type pika|umi|gello|xbox|spacemouse`；`Ctrl+C` 结束采集。`--with-robot` 会按同一 YAML 的 `RobotConfig` 连接机械臂。
 
 使用 Pika 或 UMI 设备采集时，还需按对应方案快速开始中的说明安装设备 SDK（`pip install pysurvive agx-pypika --no-deps`）。
+
+录制文件使用 v2 格式：首行是 meta（`teleop_type`、`space`、`fps`、`t0_us` 与单位），之后每行一帧，时间用相对 `t_us`。`space` 只在文件头记录一次；默认跳过无效帧（`--keep-invalid` 保留稀疏标记），原始轴值默认不记录（`--include-axes` 开启），输出路径以 `.gz` 结尾时自动 gzip 压缩。回放仅支持 v2 文件；旧版本生成的文件需要重新采集。
+
+回放采集的遥操作数据到机械臂（`--dry-run` 只计算动作，不连接机器人）：
+
+```bash
+# 预览
+python scripts/replay_data.py -i data/pika_ep001.jsonl \
+    -c pika_teleop/config/xarm6_pika_teleop.yaml --dry-run
+
+# 半速回放
+python scripts/replay_data.py -i data/pika_ep001.jsonl \
+    -c pika_teleop/config/xarm6_pika_teleop.yaml --speed 0.5
+```
+
+支持 `cartesian`（pika/umi）、`joint`（gello）、`cartesian_delta`（xbox/spacemouse）。Xbox 数据会重放方向键的 Z/YAW 符号，但单击 START 的 Z/YAW 反转开关未被记录。不传 `--fps` 时使用录制时间戳，传入则按固定帧率回放。
 
 ## 参考资料
 

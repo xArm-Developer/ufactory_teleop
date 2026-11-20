@@ -12,7 +12,7 @@ logger = logging.getLogger('uf.teleop.xbox')
 class XboxTeleopDevice(TeleopDevice):
     """Xbox 手柄遥操作设备（增量型）。
 
-    数据: delta = [dx, dy, dz, drx, dry, drz] (mm, rad)，
+    数据: delta = [dx, dy, dz, drx, dry, drz] (mm, deg)，
     由摇杆/扳机轴按 direction、max_distances 与 A/B/X/Y 轴锁定规则映射得到。
     dz / drz 的方向（方向键 / 上层反转开关）由调用方处理。
     """

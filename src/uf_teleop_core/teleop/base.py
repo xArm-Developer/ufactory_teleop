@@ -22,7 +22,7 @@ class TeleopData:
     - joints: 关节角 (rad)
     - gripper: 0: 张开, 1: 闭合 (与 UFRobot 最后一位夹爪分量语义一致)
     - buttons: 按键/状态，如 pika 的 {"command": 0/1}
-    - delta: [dx, dy, dz, drx, dry, drz]，单位 mm/rad，rpy 增量（手柄/SpaceMouse）
+    - delta: [dx, dy, dz, drx, dry, drz]，平移 mm、旋转 deg，rpy 增量（手柄/SpaceMouse）
     - axes: 原始输入轴值，供零输入判断与数据采集（手柄/SpaceMouse）
     """
     timestamp: float

@@ -12,7 +12,7 @@ logger = logging.getLogger('uf.teleop.spacemouse')
 class SpacemouseTeleopDevice(TeleopDevice):
     """3Dconnexion SpaceMouse 遥操作设备（增量型）。
 
-    数据: delta = [dx, dy, dz, drx, dry, drz] (mm, rad)，
+    数据: delta = [dx, dy, dz, drx, dry, drz] (mm, deg)，
     由六轴输入按 direction、max_distances 映射得到；buttons 为左右键。
     """
 

@@ -122,7 +122,7 @@ A teleop device only reads input; it never touches the robot. `get_data()` retur
 | `joints` | joint angles in radians (Gello). |
 | `gripper` | normalized `0` open → `1` closed; ready for `UFRobot.send_action`. |
 | `buttons` | device states, e.g. Pika `{"command": 0/1}`, Xbox `{"START": 0/1, ...}`. |
-| `delta` | `[dx, dy, dz, drx, dry, drz]` in mm/rad (rpy increments) for incremental devices. |
+| `delta` | `[dx, dy, dz, drx, dry, drz]` in mm/deg (rpy increments) for incremental devices. |
 | `axes` | raw axis values for incremental devices (zero-input checks and data collection). |
 
 Devices are independent of the robot and can be used standalone:
@@ -146,7 +146,7 @@ All devices implement `TeleopDevice` (`connect`, `close`, `get_data`) and suppor
 
 `CartesianTeleopMapper(tracker_to_robot_eef, robot_base_pose=None, is_axis_angle=True)` maps cartesian `TeleopData` to a robot target pose `[x, y, z, rx, ry, rz]` (mm/rad) using relative motion: target = initial robot pose × inv(initial teleop pose) × current teleop pose. Call `reset(data, robot_tcp_pose)` when teleoperation starts (omit the pose when `robot_base_pose` is configured), then `map(data)` each frame. It reuses `Transformations.tracker_pose_to_robot_matrix()` / `tracker_robot_matrix_to_robot_pose()`.
 
-For recording data without a robot, see [`data_collection/collect_data.py`](../../data_collection/collect_data.py).
+For recording data without a robot, see [`scripts/collect_data.py`](../../scripts/collect_data.py); to replay recorded teleop frames on a robot, see [`scripts/replay_data.py`](../../scripts/replay_data.py).
 
 ## devices/pika/ — Pika Sense and Pika Gripper
 

@@ -176,21 +176,37 @@ with PikaTeleopDevice(use_gripper=True) as device:
         print(data.position, data.quaternion, data.gripper, data.buttons)
 ```
 
-Collect teleop data standalone (one JSON line per frame):
+Collect teleop data standalone (v2 JSONL recording):
 
 ```bash
 # Teleop device only
-python data_collection/collect_data.py --teleop-type pika \
+python scripts/collect_data.py --teleop-type pika \
     -c pika_teleop/config/xarm6_pika_teleop.yaml -o data/pika_ep001.jsonl
 
 # Also record robot state (initialization moves the arm to start_joints; no actions are sent)
-python data_collection/collect_data.py --teleop-type umi \
+python scripts/collect_data.py --teleop-type umi \
     -c umi_teleop/config/xarm6_umi_teleop.yaml -o data/umi_ep001.jsonl --with-robot
 ```
 
 `--teleop-type` accepts `pika|umi|gello|xbox|spacemouse`; press `Ctrl+C` to stop. With `--with-robot`, the robot is connected from the same YAML's `RobotConfig`.
 
 For Pika or UMI devices, also install the device SDKs as shown in the solution quick starts (`pip install pysurvive agx-pypika --no-deps`).
+
+Recordings use the v2 format: the first line is a meta record (`teleop_type`, `space`, `fps`, `t0_us` and units), followed by one frame per line with a relative `t_us`. `space` is stored once per file, invalid frames are skipped by default (`--keep-invalid` keeps sparse markers), raw axes are opt-in (`--include-axes`), and an output path ending in `.gz` is gzip-compressed. Replay accepts v2 recordings only; re-collect files produced by older versions.
+
+Replay recorded teleop data on the robot (`--dry-run` only builds actions without connecting):
+
+```bash
+# preview
+python scripts/replay_data.py -i data/pika_ep001.jsonl \
+    -c pika_teleop/config/xarm6_pika_teleop.yaml --dry-run
+
+# replay at half speed
+python scripts/replay_data.py -i data/pika_ep001.jsonl \
+    -c pika_teleop/config/xarm6_pika_teleop.yaml --speed 0.5
+```
+
+Supported spaces: `cartesian` (pika/umi), `joint` (gello), `cartesian_delta` (xbox/spacemouse). For Xbox data the D-pad Z/YAW sign is replayed, but the single-click Z/YAW reversal toggle is not recorded. Without `--fps`, the recorded timestamps are used; `--fps` forces a fixed rate.
 
 ## References
 

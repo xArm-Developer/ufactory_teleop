@@ -122,7 +122,7 @@ src/uf_teleop_core/
 | `joints` | 关节角（rad，Gello）。 |
 | `gripper` | 归一化 `0` 张开 → `1` 闭合，可直接作为 `UFRobot.send_action` 的最后一位。 |
 | `buttons` | 设备状态，例如 Pika 的 `{"command": 0/1}`、Xbox 的 `{"START": 0/1, ...}`。 |
-| `delta` | `[dx, dy, dz, drx, dry, drz]`，mm/rad，rpy 增量（增量型设备）。 |
+| `delta` | `[dx, dy, dz, drx, dry, drz]`，平移 mm、旋转 deg，rpy 增量（增量型设备）。 |
 | `axes` | 原始轴值（增量型设备），用于零输入判断与数据采集。 |
 
 设备与机器人解耦，可独立使用：
@@ -146,7 +146,7 @@ with PikaTeleopDevice(use_gripper=True) as device:
 
 `CartesianTeleopMapper(tracker_to_robot_eef, robot_base_pose=None, is_axis_angle=True)` 将笛卡尔 `TeleopData` 映射为机器人目标位姿 `[x, y, z, rx, ry, rz]`（mm/rad），采用相对运动：目标 = 机械臂初始位姿 × inv(遥操作初始位姿) × 当前遥操作位姿。遥操作开始时调用 `reset(data, robot_tcp_pose)`（配置了 `robot_base_pose` 时省略该位姿），之后每帧调用 `map(data)`。内部复用 `Transformations.tracker_pose_to_robot_matrix()` / `tracker_robot_matrix_to_robot_pose()`。
 
-不连接机器人、仅录制数据见 [`data_collection/collect_data.py`](../../data_collection/collect_data.py)。
+不连接机器人、仅录制数据见 [`scripts/collect_data.py`](../../scripts/collect_data.py)；将录制的遥操作帧回放到机械臂见 [`scripts/replay_data.py`](../../scripts/replay_data.py)。
 
 ## devices/pika/ —— Pika Sense 与 Pika Gripper
 
